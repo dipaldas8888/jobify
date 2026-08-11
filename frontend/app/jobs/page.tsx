@@ -1,0 +1,844 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, useMemo, useEffect } from "react";
+import { mockJobs, type Job, type JobType, type ExperienceLevel } from "@/data/mockJobs";
+import { jobsApi } from "@/lib/api";
+import { useAppSelector } from "@/lib/redux/store";
+
+const JOB_TYPES: JobType[] = ["Full-time", "Part-time", "Contract", "Remote", "Internship"];
+const EXPERIENCE_LEVELS: ExperienceLevel[] = [
+  "Entry Level",
+  "Mid Level",
+  "Senior Level",
+  "Lead",
+  "Director",
+];
+
+function JobCard({ job }: { job: Job }) {
+  const router = useRouter();
+
+  return (
+    <div
+      className="job-card"
+      style={{ position: "relative", cursor: "pointer" }}
+      onClick={() => router.push(`/jobs/${job.id}`)}
+    >
+      {job.featured && (
+        <div
+          style={{
+            position: "absolute",
+            top: "16px",
+            right: "16px",
+            fontSize: "0.7rem",
+            fontWeight: 700,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            color: "#b45309",
+            background: "rgba(245,158,11,0.1)",
+            border: "1px solid rgba(245,158,11,0.25)",
+            padding: "3px 10px",
+            borderRadius: "50px",
+          }}
+        >
+          ⭐ Featured
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
+        {/* Logo */}
+        <div
+          className="company-logo"
+          style={{ background: job.companyColor || "linear-gradient(135deg, #4f46e5, #6366f1)", color: "white", flexShrink: 0 }}
+        >
+          {job.companyLogo || job.company.charAt(0)}
+        </div>
+
+        {/* Content */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h3
+            style={{
+              fontWeight: 700,
+              fontSize: "1rem",
+              color: "var(--text-primary)",
+              marginBottom: "4px",
+              paddingRight: job.featured ? "80px" : "0",
+            }}
+            className="hover-underline"
+          >
+            {job.title}
+          </h3>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              fontSize: "0.825rem",
+              color: "var(--text-secondary)",
+              marginBottom: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            <span style={{ fontWeight: 600, color: "#4f46e5" }}>{job.company}</span>
+            <span style={{ color: "var(--text-muted)" }}>•</span>
+            <span>📍 {job.location}</span>
+            <span style={{ color: "var(--text-muted)" }}>•</span>
+            <span>🕐 {job.postedAt}</span>
+          </div>
+
+          <p
+            style={{
+              fontSize: "0.85rem",
+              color: "var(--text-secondary)",
+              lineHeight: 1.6,
+              marginBottom: "14px",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
+            {job.description}
+          </p>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "10px",
+            }}
+          >
+            {/* Tags */}
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+              {job.tags.slice(0, 3).map((tag) => (
+                <span key={tag} className="badge badge-accent">
+                  {tag}
+                </span>
+              ))}
+              {job.tags.length > 3 && (
+                <span className="badge" style={{ background: "#f1f5f9", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
+                  +{job.tags.length - 3}
+                </span>
+              )}
+            </div>
+
+            {/* Right side */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  color: "var(--text-muted)",
+                  background: "#f1f5f9",
+                  padding: "3px 8px",
+                  borderRadius: "6px",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                {job.experience}
+              </span>
+              <span className="badge badge-success">{job.type}</span>
+              <span
+                style={{
+                  fontFamily: "var(--font-display, 'Outfit', sans-serif)",
+                  fontWeight: 700,
+                  fontSize: "0.95rem",
+                  color: "var(--text-primary)",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {job.salary}
+              </span>
+
+              <Link
+                href={`/jobs/${job.id}/apply`}
+                onClick={(e) => e.stopPropagation()}
+                className="btn-primary"
+                style={{ padding: "6px 14px", fontSize: "0.8rem", borderRadius: "8px", textDecoration: "none" }}
+              >
+                Apply Now
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function JobsPage() {
+  const { user } = useAppSelector((state) => state.auth);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [locationQuery, setLocationQuery] = useState("");
+  const [selectedTypes, setSelectedTypes] = useState<JobType[]>([]);
+  const [selectedExp, setSelectedExp] = useState<ExperienceLevel | "">("");
+  const [sortBy, setSortBy] = useState<"recent" | "salary" | "applicants">("recent");
+
+  const [backendJobs, setBackendJobs] = useState<Job[]>([]);
+  const [isLoadingBackend, setIsLoadingBackend] = useState(true);
+
+  // Apply Modal state
+  const [applyingJob, setApplyingJob] = useState<Job | null>(null);
+  const [coverLetter, setCoverLetter] = useState("");
+  const [isSubmittingApp, setIsSubmittingApp] = useState(false);
+  const [appMessage, setAppMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  useEffect(() => {
+    fetchBackendJobs();
+  }, []);
+
+  const fetchBackendJobs = async () => {
+    setIsLoadingBackend(true);
+    try {
+      const res = await jobsApi.getJobs();
+      const rawList = Array.isArray(res.data) ? res.data : Array.isArray(res.jobs) ? res.jobs : [];
+      if (res.success && rawList.length > 0) {
+        const formatted: Job[] = rawList.map((j: any) => ({
+          id: j._id || j.id,
+          title: j.title,
+          company: j.company || (j.recruiter?.companyName) || "Jobify Recruiter",
+          location: j.location || "Remote",
+          type: (j.jobType as JobType) || "Full-time",
+          salary: j.salary ? `$${Number(j.salary).toLocaleString()}/yr` : "Competitive Salary",
+          experience: (j.experience as ExperienceLevel) || "Mid Level",
+          description: j.description || "",
+          tags: j.skillsRequired && j.skillsRequired.length > 0 ? j.skillsRequired : ["Engineering"],
+          postedAt: j.createdAt ? new Date(j.createdAt).toLocaleDateString() : "Recently",
+          companyLogo: (j.company || "J").charAt(0),
+          companyColor: "linear-gradient(135deg, #4f46e5, #6366f1)",
+          applicants: j.applicantsCount || 0,
+          featured: j.status === "Published",
+        }));
+        setBackendJobs(formatted);
+      }
+    } catch (err) {
+      console.error("Failed to load backend jobs:", err);
+    } finally {
+      setIsLoadingBackend(false);
+    }
+  };
+
+  const allJobsList = useMemo(() => {
+    // Combine backend jobs with mock jobs (avoiding duplicates)
+    if (backendJobs.length > 0) {
+      return [...backendJobs, ...mockJobs];
+    }
+    return mockJobs;
+  }, [backendJobs]);
+
+  const toggleType = (type: JobType) => {
+    setSelectedTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  };
+
+  const filteredJobs = useMemo(() => {
+    let jobs = [...allJobsList];
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      jobs = jobs.filter(
+        (j) =>
+          j.title.toLowerCase().includes(q) ||
+          j.company.toLowerCase().includes(q) ||
+          j.tags.some((t) => t.toLowerCase().includes(q))
+      );
+    }
+
+    if (locationQuery.trim()) {
+      const loc = locationQuery.toLowerCase();
+      jobs = jobs.filter((j) => j.location.toLowerCase().includes(loc));
+    }
+
+    if (selectedTypes.length > 0) {
+      jobs = jobs.filter((j) => selectedTypes.includes(j.type));
+    }
+
+    if (selectedExp) {
+      jobs = jobs.filter((j) => j.experience === selectedExp);
+    }
+
+    if (sortBy === "applicants") {
+      jobs.sort((a, b) => b.applicants - a.applicants);
+    }
+
+    return jobs;
+  }, [allJobsList, searchQuery, locationQuery, selectedTypes, selectedExp, sortBy]);
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setLocationQuery("");
+    setSelectedTypes([]);
+    setSelectedExp("");
+    setSortBy("recent");
+  };
+
+  const hasActiveFilters =
+    searchQuery || locationQuery || selectedTypes.length > 0 || selectedExp;
+
+  const handleApplyClick = (job: Job) => {
+    setApplyingJob(job);
+    setCoverLetter("");
+    setAppMessage(null);
+  };
+
+  const handleApplicationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!applyingJob) return;
+
+    if (!user) {
+      setAppMessage({ type: "error", text: "Please sign in to your account first to submit job applications." });
+      return;
+    }
+
+    setIsSubmittingApp(true);
+    setAppMessage(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("coverLetter", coverLetter);
+
+      const res = await jobsApi.applyJob(String(applyingJob.id), formData);
+      if (res.success) {
+        setAppMessage({ type: "success", text: "Application submitted successfully to the employer!" });
+        setTimeout(() => {
+          setApplyingJob(null);
+        }, 1500);
+      } else {
+        setAppMessage({ type: "error", text: res.message || "Failed to submit application." });
+      }
+    } catch (err: any) {
+      setAppMessage({ type: "error", text: err.message || "Application submission error." });
+    } finally {
+      setIsSubmittingApp(false);
+    }
+  };
+
+  return (
+    <div style={{ background: "var(--bg-base)", minHeight: "100vh", position: "relative" }}>
+      {/* Glow effects */}
+      <div
+        className="glow-orb glow-orb-primary"
+        style={{ width: "400px", height: "400px", top: "-50px", right: "-100px", opacity: 0.15 }}
+      />
+
+      {/* ===================== PAGE HEADER ===================== */}
+      <div
+        style={{
+          background: "linear-gradient(180deg, #ffffff 0%, var(--bg-base) 100%)",
+          borderBottom: "1px solid var(--border)",
+          padding: "48px 0 0",
+        }}
+        className="bg-grid"
+      >
+        <div className="container-main" style={{ paddingBottom: "32px" }}>
+          {/* Title */}
+          <div style={{ marginBottom: "28px" }}>
+            <h1
+              style={{
+                fontFamily: "var(--font-display, 'Outfit', sans-serif)",
+                fontSize: "clamp(1.75rem, 4vw, 2.75rem)",
+                fontWeight: 900,
+                letterSpacing: "-0.03em",
+                color: "var(--text-primary)",
+                marginBottom: "8px",
+              }}
+            >
+              Find your next{" "}
+              <span className="gradient-text">opportunity</span>
+            </h1>
+            <p style={{ color: "var(--text-secondary)", fontSize: "1rem" }}>
+              {filteredJobs.length.toLocaleString()} jobs available right now
+            </p>
+          </div>
+
+          {/* Search Bar */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto 1fr auto",
+              gap: "10px",
+              alignItems: "center",
+              background: "#ffffff",
+              border: "1px solid var(--border)",
+              borderRadius: "14px",
+              padding: "8px",
+              flexWrap: "wrap",
+              boxShadow: "var(--shadow-card)",
+            }}
+            role="search"
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px" }}>
+              <span style={{ fontSize: "1.1rem" }}>🔍</span>
+              <input
+                type="text"
+                placeholder="Job title, company, or skill…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search jobs"
+                id="jobs-search-input"
+                style={{
+                  background: "none",
+                  border: "none",
+                  outline: "none",
+                  color: "var(--text-primary)",
+                  fontSize: "0.95rem",
+                  width: "100%",
+                  fontFamily: "inherit",
+                }}
+              />
+            </div>
+
+            <div
+              style={{
+                width: "1px",
+                height: "32px",
+                background: "var(--border)",
+              }}
+            />
+
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px" }}>
+              <span style={{ fontSize: "1.1rem" }}>📍</span>
+              <input
+                type="text"
+                placeholder="Location or Remote…"
+                value={locationQuery}
+                onChange={(e) => setLocationQuery(e.target.value)}
+                aria-label="Filter by location"
+                id="jobs-location-input"
+                style={{
+                  background: "none",
+                  border: "none",
+                  outline: "none",
+                  color: "var(--text-primary)",
+                  fontSize: "0.95rem",
+                  width: "100%",
+                  fontFamily: "inherit",
+                }}
+              />
+            </div>
+
+            <button
+              className="btn-primary"
+              style={{ borderRadius: "10px", whiteSpace: "nowrap" }}
+              onClick={() => {}}
+              type="button"
+            >
+              Search
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ===================== MAIN CONTENT ===================== */}
+      <div className="container-main" style={{ padding: "32px 24px" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "280px 1fr",
+            gap: "28px",
+            alignItems: "start",
+          }}
+        >
+          {/* ===== SIDEBAR FILTERS ===== */}
+          <aside aria-label="Job filters" style={{ position: "sticky", top: "88px" }}>
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid var(--border)",
+                borderRadius: "16px",
+                padding: "24px",
+                boxShadow: "var(--shadow-card)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: "24px",
+                }}
+              >
+                <h2
+                  style={{
+                    fontWeight: 700,
+                    fontSize: "1rem",
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  Filters
+                </h2>
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearFilters}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      fontSize: "0.8rem",
+                      color: "#4f46e5",
+                      fontWeight: 600,
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                      transition: "background 0.2s",
+                    }}
+                    type="button"
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
+
+              {/* Job Type */}
+              <div style={{ marginBottom: "28px" }}>
+                <h3
+                  style={{
+                    fontSize: "0.775rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "var(--text-muted)",
+                    marginBottom: "12px",
+                  }}
+                >
+                  Job Type
+                </h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {JOB_TYPES.map((type) => (
+                    <label
+                      key={type}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        cursor: "pointer",
+                        fontSize: "0.9rem",
+                        color: selectedTypes.includes(type)
+                          ? "#4f46e5"
+                          : "var(--text-secondary)",
+                        fontWeight: selectedTypes.includes(type) ? 600 : 400,
+                        transition: "color 0.2s",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedTypes.includes(type)}
+                        onChange={() => toggleType(type)}
+                        style={{ accentColor: "#4f46e5", width: "15px", height: "15px" }}
+                        aria-label={`Filter by ${type}`}
+                      />
+                      {type}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Experience Level */}
+              <div style={{ marginBottom: "28px" }}>
+                <h3
+                  style={{
+                    fontSize: "0.775rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "var(--text-muted)",
+                    marginBottom: "12px",
+                  }}
+                >
+                  Experience Level
+                </h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {EXPERIENCE_LEVELS.map((level) => (
+                    <label
+                      key={level}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        cursor: "pointer",
+                        fontSize: "0.9rem",
+                        color: selectedExp === level ? "#4f46e5" : "var(--text-secondary)",
+                        fontWeight: selectedExp === level ? 600 : 400,
+                        transition: "color 0.2s",
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="experience"
+                        checked={selectedExp === level}
+                        onChange={() => setSelectedExp(selectedExp === level ? "" : level)}
+                        style={{ accentColor: "#4f46e5", width: "15px", height: "15px" }}
+                        aria-label={`Filter by ${level} experience`}
+                      />
+                      {level}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quick Filters */}
+              <div>
+                <h3
+                  style={{
+                    fontSize: "0.775rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "var(--text-muted)",
+                    marginBottom: "12px",
+                  }}
+                >
+                  Quick Filters
+                </h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {[
+                    { label: "🌍 Remote only", action: () => setLocationQuery("Remote") },
+                    { label: "⭐ Featured jobs", action: () => {} },
+                    { label: "🆕 Posted today", action: () => {} },
+                  ].map((qf) => (
+                    <button
+                      key={qf.label}
+                      onClick={qf.action}
+                      type="button"
+                      style={{
+                        background: "#ffffff",
+                        border: "1px solid var(--border)",
+                        borderRadius: "8px",
+                        padding: "8px 12px",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        fontSize: "0.875rem",
+                        color: "var(--text-secondary)",
+                        transition: "all 0.2s ease",
+                        fontFamily: "inherit",
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLElement).style.color = "#4f46e5";
+                        (e.currentTarget as HTMLElement).style.borderColor = "rgba(79,70,229,0.3)";
+                        (e.currentTarget as HTMLElement).style.background = "rgba(79,70,229,0.04)";
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)";
+                        (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
+                        (e.currentTarget as HTMLElement).style.background = "#ffffff";
+                      }}
+                    >
+                      {qf.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* ===== JOBS LIST ===== */}
+          <div>
+            {/* Sort + Result Count */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: "20px",
+                flexWrap: "wrap",
+                gap: "12px",
+              }}
+            >
+              <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>
+                Showing{" "}
+                <strong style={{ color: "var(--text-primary)" }}>
+                  {filteredJobs.length}
+                </strong>{" "}
+                results
+                {hasActiveFilters && (
+                  <span style={{ color: "#4f46e5", fontWeight: 600 }}> (filtered)</span>
+                )}
+              </p>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <label
+                  htmlFor="sort-select"
+                  style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}
+                >
+                  Sort by:
+                </label>
+                <select
+                  id="sort-select"
+                  className="filter-select"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                  style={{ minWidth: "150px" }}
+                >
+                  <option value="recent">Most Recent</option>
+                  <option value="applicants">Most Applied</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Active filter chips */}
+            {hasActiveFilters && (
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "20px" }}>
+                {searchQuery && (
+                  <span className="badge badge-primary">
+                    🔍 {searchQuery}{" "}
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", marginLeft: "4px", fontSize: "0.9rem" }}
+                      type="button"
+                      aria-label="Remove search filter"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {locationQuery && (
+                  <span className="badge badge-accent">
+                    📍 {locationQuery}{" "}
+                    <button
+                      onClick={() => setLocationQuery("")}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", marginLeft: "4px", fontSize: "0.9rem" }}
+                      type="button"
+                      aria-label="Remove location filter"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {selectedTypes.map((t) => (
+                  <span key={t} className="badge badge-success">
+                    {t}{" "}
+                    <button
+                      onClick={() => toggleType(t)}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", marginLeft: "4px", fontSize: "0.9rem" }}
+                      type="button"
+                      aria-label={`Remove ${t} filter`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Jobs list */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              {filteredJobs.map((job, i) => (
+                <div key={job.id}>
+                  <JobCard job={job} onApply={handleApplyClick} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Application Modal */}
+      {applyingJob && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.6)",
+            backdropFilter: "blur(6px)",
+            zIndex: 999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: "20px",
+              padding: "32px",
+              width: "100%",
+              maxWidth: "500px",
+              boxShadow: "0 20px 50px rgba(0,0,0,0.15)",
+              border: "1px solid var(--border)",
+            }}
+            className="animate-fade-in-up"
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+              <div>
+                <h3 style={{ fontWeight: 800, fontSize: "1.2rem", color: "var(--text-primary)" }}>
+                  Apply to {applyingJob.company}
+                </h3>
+                <p style={{ fontSize: "0.875rem", color: "#4f46e5", fontWeight: 600 }}>{applyingJob.title}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setApplyingJob(null)}
+                style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "var(--text-muted)" }}
+              >
+                ×
+              </button>
+            </div>
+
+            {appMessage && (
+              <div
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: "10px",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  marginBottom: "16px",
+                  background: appMessage.type === "success" ? "rgba(5,150,105,0.08)" : "rgba(220,38,38,0.08)",
+                  color: appMessage.type === "success" ? "#047857" : "#b91c1c",
+                  border: `1px solid ${appMessage.type === "success" ? "rgba(5,150,105,0.2)" : "rgba(220,38,38,0.2)"}`,
+                }}
+              >
+                {appMessage.type === "success" ? "✅ " : "⚠️ "}{appMessage.text}
+              </div>
+            )}
+
+            {!user && (
+              <div style={{ marginBottom: "16px", padding: "12px", background: "#f8fafc", borderRadius: "10px", border: "1px solid var(--border)", fontSize: "0.825rem", color: "var(--text-secondary)" }}>
+                💡 You are currently not signed in. <Link href="/auth/login" style={{ color: "#4f46e5", fontWeight: 700 }}>Click here to sign in</Link> first.
+              </div>
+            )}
+
+            <form onSubmit={handleApplicationSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div>
+                <label style={{ display: "block", fontSize: "0.825rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "6px" }}>
+                  Cover Letter / Introduction
+                </label>
+                <textarea
+                  rows={4}
+                  placeholder="Introduce yourself and explain why you're a great fit for this position..."
+                  value={coverLetter}
+                  onChange={(e) => setCoverLetter(e.target.value)}
+                  className="search-input"
+                  style={{ borderRadius: "12px", resize: "vertical" }}
+                  required
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  onClick={() => setApplyingJob(null)}
+                  className="btn-secondary"
+                  style={{ borderRadius: "10px", padding: "10px 20px" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={isSubmittingApp || !user}
+                  style={{ borderRadius: "10px", padding: "10px 24px", opacity: isSubmittingApp || !user ? 0.6 : 1 }}
+                >
+                  {isSubmittingApp ? "Submitting..." : "Submit Application →"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
