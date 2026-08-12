@@ -1,10 +1,37 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { mockJobs, jobCategories } from "@/data/mockJobs";
+import { jobsApi } from "@/lib/api";
+import { type Job, jobCategories } from "@/data/mockJobs";
 
 export default function HomePage() {
-  const featuredJobs = mockJobs.filter((j) => j.featured).slice(0, 3);
+  const [featuredJobs, setFeaturedJobs] = useState<Job[]>([]);
+
+  useEffect(() => {
+    jobsApi.getJobs().then((res) => {
+      const rawList = Array.isArray(res.data) ? res.data : Array.isArray(res.jobs) ? res.jobs : [];
+      if (res.success && rawList.length > 0) {
+        const formatted: Job[] = rawList.map((j: any) => ({
+          id: j._id || j.id,
+          title: j.title,
+          company: j.company || j.recruiter?.companyName || "Jobify Recruiter",
+          location: j.location || "Remote",
+          type: j.jobType || "Full-time",
+          salary: j.salary ? `$${Number(j.salary).toLocaleString()}/yr` : "Competitive Salary",
+          experience: j.experience || "Mid Level",
+          description: j.description || "",
+          tags: j.skillsRequired && j.skillsRequired.length > 0 ? j.skillsRequired : ["Engineering"],
+          postedAt: j.createdAt ? new Date(j.createdAt).toLocaleDateString() : "Recently",
+          companyLogo: (j.company || "J").charAt(0),
+          companyColor: "linear-gradient(135deg, #4f46e5, #6366f1)",
+          applicants: j.applicantsCount || 0,
+          featured: true,
+        }));
+        setFeaturedJobs(formatted.slice(0, 3));
+      }
+    }).catch(() => {});
+  }, []);
 
   return (
     <div style={{ position: "relative", overflow: "hidden", background: "var(--bg-base)" }}>

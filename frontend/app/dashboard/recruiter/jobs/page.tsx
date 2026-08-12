@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { jobsApi } from "@/lib/api";
+import { jobsApi, dashboardApi } from "@/lib/api";
 import { useAppSelector } from "@/lib/redux/store";
 
 interface JobItem {
@@ -17,14 +17,6 @@ interface JobItem {
   description?: string;
 }
 
-const fallbackJobs: JobItem[] = [
-  { id: "1", title: "Senior Frontend Engineer", applicants: 48, status: "Active", posted: "Aug 3, 2026", views: 1240, salary: "$150k–$200k", location: "San Francisco, CA" },
-  { id: "2", title: "Product Manager", applicants: 112, status: "Active", posted: "Jul 31, 2026", views: 3580, salary: "$140k–$180k", location: "New York, NY" },
-  { id: "3", title: "Backend Developer", applicants: 23, status: "Paused", posted: "Jul 28, 2026", views: 890, salary: "$130k–$160k", location: "Remote" },
-  { id: "4", title: "UX Designer", applicants: 67, status: "Active", posted: "Jul 28, 2026", views: 2100, salary: "$110k–$145k", location: "Austin, TX" },
-  { id: "5", title: "DevOps Engineer", applicants: 19, status: "Closed", posted: "Jul 22, 2026", views: 760, salary: "$140k–$170k", location: "Remote" },
-];
-
 const statusColors: Record<string, { bg: string; text: string; border: string }> = {
   Active: { bg: "rgba(5,150,105,0.08)", text: "#047857", border: "rgba(5,150,105,0.2)" },
   Published: { bg: "rgba(5,150,105,0.08)", text: "#047857", border: "rgba(5,150,105,0.2)" },
@@ -37,7 +29,7 @@ export default function RecruiterJobsPage() {
   const [filter, setFilter] = useState<"All" | "Active" | "Paused" | "Closed">("All");
   const [search, setSearch] = useState("");
 
-  const [jobs, setJobs] = useState<JobItem[]>(fallbackJobs);
+  const [jobs, setJobs] = useState<JobItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Post Modal
@@ -67,26 +59,25 @@ export default function RecruiterJobsPage() {
   const fetchRecruiterJobs = async () => {
     setIsLoading(true);
     try {
-      const res = await jobsApi.getJobs();
-      if (res.success && (res.data || res.jobs)) {
-        const rawList = res.data || res.jobs || [];
-        if (Array.isArray(rawList) && rawList.length > 0) {
-          const formatted: JobItem[] = rawList.map((j: any) => ({
-            id: j._id || j.id,
-            title: j.title,
-            applicants: j.applicationCount || 0,
-            status: j.status === "Published" ? "Active" : "Closed",
-            posted: new Date(j.createdAt).toLocaleDateString(),
-            views: 120,
-            salary: j.salary ? `$${Number(j.salary).toLocaleString()}/yr` : "Competitive",
-            location: j.location || "Remote",
-            description: j.description,
-          }));
-          setJobs(formatted);
-        }
+      const res = await dashboardApi.getRecruiterDashboard();
+      if (res.success) {
+        const rawList = res.dashboard?.jobs || res.data?.allJobs || res.data?.activeJobs || [];
+        const formatted: JobItem[] = rawList.map((j: any) => ({
+          id: j._id || j.id,
+          title: j.title,
+          applicants: j.applicationCount ?? j.applicantsCount ?? 0,
+          status: j.status === "Published" ? "Active" : "Closed",
+          posted: new Date(j.createdAt).toLocaleDateString(),
+          views: 120,
+          salary: j.salary ? `$${Number(j.salary).toLocaleString()}/yr` : "Competitive",
+          location: j.location || "Remote",
+          description: j.description,
+        }));
+        setJobs(formatted);
       }
     } catch (err) {
       console.log("Error loading recruiter jobs:", err);
+      setJobs([]);
     } finally {
       setIsLoading(false);
     }

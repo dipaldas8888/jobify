@@ -504,3 +504,98 @@ body {
 .hero-search input::placeholder {
   color: var(--text-muted);
 }
+
+/* ==============================
+   Dark Sidebar Styling & Animations
+============================== */
+.dark-sidebar-nav-item {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dark-sidebar-nav-item:hover {
+  transform: translateX(5px);
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.15);
+    box-shadow: 0 0 0 6px rgba(52, 211, 153, 0);
+  }
+}
+
+.pulsing-dot {
+  animation: pulseGlow 2s infinite ease-in-out;
+}
+
+.dark-logout-btn {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dark-logout-btn:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(220, 38, 38, 0.35)) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.35) !important;
+  color: #ffffff !important;
+}
+
+/* ==============================
+   Skeleton Loading Animation
+============================== */
+@keyframes skeletonShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-box {
+  background: linear-gradient(
+    90deg,
+    #e2e8f0 25%,
+    #f8fafc 37%,
+    #e2e8f0 63%
+  );
+  background-size: 400% 100%;
+  animation: skeletonShimmer 1.6s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ==============================
+   Splash Screen Animations
+============================== */
+@keyframes splashGlowPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.6));
+  }
+  50% {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 35px rgba(99, 102, 241, 0.9));
+  }
+}
+
+@keyframes splashSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.splash-logo-glow {
+  animation: splashGlowPulse 1.8s ease-in-out infinite;
+}
+
+.splash-spinner {
+  animation: splashSpin 0.9s linear infinite;
+}

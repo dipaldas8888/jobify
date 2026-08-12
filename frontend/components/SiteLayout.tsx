@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ReduxProvider from "@/lib/redux/ReduxProvider";
+import SplashScreen from "@/components/SplashScreen";
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -11,6 +12,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <ReduxProvider>
+      <SplashScreen />
       {isDashboard ? (
         children
       ) : (

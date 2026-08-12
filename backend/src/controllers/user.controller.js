@@ -416,18 +416,28 @@ export const getCandidateDashboard = async (req, res) => {
 export const getRecruiterDashboard = async (req, res) => {
   try {
     const recruiterId = req.user._id;
-    const jobs = await Job.find({ recruiter: recruiterId });
+    const jobs = await Job.find({ recruiter: recruiterId }).sort({ createdAt: -1 });
     const jobIds = jobs.map((job) => job._id);
 
     const activeJobs = jobs.filter((job) => job.status === "Published" && (!job.deadline || job.deadline > new Date()));
     const allApplications = await Application.find({ job: { $in: jobIds } })
-      .populate("candidate", "name email photo skills education experience")
-      .populate("job", "title company location status");
+      .populate("candidate", "name email photo skills education experience location phone resume")
+      .populate("job", "title company location status salary jobType")
+      .sort({ createdAt: -1 });
+
+    const jobsWithAppCount = jobs.map((j) => {
+      const appCount = allApplications.filter((app) => app.job && app.job._id.toString() === j._id.toString()).length;
+      return {
+        ...j.toObject(),
+        applicationCount: appCount,
+        applicantsCount: appCount,
+      };
+    });
 
     const totalApplicants = allApplications.length;
     const pendingApplications = allApplications.filter((app) => app.status === "Applied");
-    const shortlistedCandidates = allApplications.filter((app) => app.status === "Shortlisted");
-    const interviewsScheduled = allApplications.filter((app) => app.status === "Interview Scheduled");
+    const shortlistedCandidates = allApplications.filter((app) => app.status === "Shortlisted" || app.status === "Screening");
+    const interviewsScheduled = allApplications.filter((app) => app.status === "Interview Scheduled" || app.status === "Interview");
     const rejectedApplications = allApplications.filter((app) => app.status === "Rejected");
 
     const analytics = {
@@ -435,7 +445,7 @@ export const getRecruiterDashboard = async (req, res) => {
       activeJobsCount: activeJobs.length,
       draftJobsCount: jobs.filter((job) => job.status === "Draft").length,
       totalApplicants,
-      conversionRate: totalApplicants > 0 ? ((shortlistedCandidates.length + interviewsScheduled.length) / totalApplicants * 100).toFixed(1) : 0,
+      conversionRate: totalApplicants > 0 ? (((shortlistedCandidates.length + interviewsScheduled.length) / totalApplicants) * 100).toFixed(1) : 0,
       statusBreakdown: {
         pending: pendingApplications.length,
         shortlisted: shortlistedCandidates.length,
@@ -446,14 +456,23 @@ export const getRecruiterDashboard = async (req, res) => {
 
     res.json({
       success: true,
+      dashboard: {
+        stats: {
+          totalJobs: jobs.length,
+          totalApplications: totalApplicants,
+        },
+        jobs: jobsWithAppCount,
+        applications: allApplications,
+      },
       data: {
-        activeJobs,
+        activeJobs: jobsWithAppCount.filter((j) => j.status === "Published"),
         totalApplicants,
         interviews: interviewsScheduled,
         shortlistedCandidates,
         pendingApplications,
+        allApplications,
         analytics,
-        allJobs: jobs,
+        allJobs: jobsWithAppCount,
       },
     });
   } catch (error) {

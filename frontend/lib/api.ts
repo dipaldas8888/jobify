@@ -109,6 +109,12 @@ export const jobsApi = {
       method: "POST",
       body: formData,
     }),
+
+  updateApplicationStatus: (applicationId: string, status: string) =>
+    apiRequest(`/jobs/applications/${applicationId}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status }),
+    }),
 };
 
 // Dashboard API methods

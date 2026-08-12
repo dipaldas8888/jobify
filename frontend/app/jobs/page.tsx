@@ -169,6 +169,55 @@ function JobCard({ job }: { job: Job }) {
   );
 }
 
+function JobCardSkeleton() {
+  return (
+    <div
+      style={{
+        background: "#ffffff",
+        borderRadius: "16px",
+        padding: "20px 24px",
+        border: "1px solid var(--border)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+      }}
+    >
+      <div style={{ display: "flex", gap: "16px", alignItems: "flex-start" }}>
+        {/* Logo box skeleton */}
+        <div className="skeleton-box" style={{ width: "48px", height: "48px", borderRadius: "12px", flexShrink: 0 }} />
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Title skeleton */}
+          <div className="skeleton-box" style={{ width: "45%", height: "20px", marginBottom: "10px" }} />
+
+          {/* Meta skeleton */}
+          <div style={{ display: "flex", gap: "12px", marginBottom: "14px" }}>
+            <div className="skeleton-box" style={{ width: "110px", height: "14px" }} />
+            <div className="skeleton-box" style={{ width: "90px", height: "14px" }} />
+            <div className="skeleton-box" style={{ width: "70px", height: "14px" }} />
+          </div>
+
+          {/* Description skeleton */}
+          <div className="skeleton-box" style={{ width: "95%", height: "14px", marginBottom: "8px" }} />
+          <div className="skeleton-box" style={{ width: "70%", height: "14px", marginBottom: "18px" }} />
+
+          {/* Tags + Actions skeleton */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <div className="skeleton-box" style={{ width: "65px", height: "24px", borderRadius: "50px" }} />
+              <div className="skeleton-box" style={{ width: "75px", height: "24px", borderRadius: "50px" }} />
+              <div className="skeleton-box" style={{ width: "60px", height: "24px", borderRadius: "50px" }} />
+            </div>
+
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <div className="skeleton-box" style={{ width: "80px", height: "24px", borderRadius: "6px" }} />
+              <div className="skeleton-box" style={{ width: "90px", height: "34px", borderRadius: "8px" }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function JobsPage() {
   const { user } = useAppSelector((state) => state.auth);
   const [searchQuery, setSearchQuery] = useState("");
@@ -222,11 +271,7 @@ export default function JobsPage() {
   };
 
   const allJobsList = useMemo(() => {
-    // Combine backend jobs with mock jobs (avoiding duplicates)
-    if (backendJobs.length > 0) {
-      return [...backendJobs, ...mockJobs];
-    }
-    return mockJobs;
+    return backendJobs;
   }, [backendJobs]);
 
   const toggleType = (type: JobType) => {
@@ -724,13 +769,51 @@ export default function JobsPage() {
             )}
 
             {/* Jobs list */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-              {filteredJobs.map((job, i) => (
-                <div key={job.id}>
-                  <JobCard job={job} onApply={handleApplyClick} />
-                </div>
-              ))}
-            </div>
+            {isLoadingBackend ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <JobCardSkeleton key={n} />
+                ))}
+              </div>
+            ) : filteredJobs.length === 0 ? (
+              <div
+                style={{
+                  background: "#ffffff",
+                  borderRadius: "16px",
+                  padding: "48px",
+                  textAlign: "center",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>🔍</div>
+                <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "8px" }}>
+                  No Jobs Found
+                </h3>
+                <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", maxWidth: "450px", margin: "0 auto 20px" }}>
+                  {hasActiveFilters
+                    ? "Try adjusting or clearing your search filters to see more job listings."
+                    : "No recruiter job postings are currently published. Check back soon!"}
+                </p>
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearAllFilters}
+                    className="btn-secondary"
+                    type="button"
+                    style={{ padding: "8px 18px", borderRadius: "10px", fontSize: "0.85rem" }}
+                  >
+                    Clear All Filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                {filteredJobs.map((job) => (
+                  <div key={job.id}>
+                    <JobCard job={job} onApply={handleApplyClick} />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -6,26 +6,18 @@ import { useAppSelector } from "@/lib/redux/store";
 import { dashboardApi, jobsApi } from "@/lib/api";
 
 const initialStats = [
-  { label: "Jobs Posted", value: "24", change: "+3", trend: "up", icon: "💼", color: "#4f46e5" },
-  { label: "Applications", value: "847", change: "+128", trend: "up", icon: "📋", color: "#0284c7" },
-  { label: "Interviews", value: "32", change: "+8", trend: "up", icon: "🤝", color: "#059669" },
-  { label: "Hired This Month", value: "8", change: "+2", trend: "up", icon: "🎉", color: "#d97706" },
-];
-
-const fallbackJobs = [
-  { title: "Senior Frontend Engineer", applicants: 48, status: "Active", posted: "2 days ago", views: 1240 },
-  { title: "Product Manager", applicants: 112, status: "Active", posted: "5 days ago", views: 3580 },
-  { title: "Backend Developer", applicants: 23, status: "Paused", posted: "1 week ago", views: 890 },
-  { title: "UX Designer", applicants: 67, status: "Active", posted: "1 week ago", views: 2100 },
-  { title: "DevOps Engineer", applicants: 19, status: "Closed", posted: "2 weeks ago", views: 760 },
+  { label: "Jobs Posted", value: "0", change: "+0", trend: "up", icon: "💼", color: "#4f46e5" },
+  { label: "Applications", value: "0", change: "+0", trend: "up", icon: "📋", color: "#0284c7" },
+  { label: "Interviews", value: "0", change: "+0", trend: "up", icon: "🤝", color: "#059669" },
+  { label: "Hired This Month", value: "0", change: "+0", trend: "up", icon: "🎉", color: "#d97706" },
 ];
 
 const pipeline = [
-  { stage: "Applied", count: 847, color: "#4f46e5" },
-  { stage: "Screening", count: 234, color: "#0284c7" },
-  { stage: "Interview", count: 89, color: "#d97706" },
-  { stage: "Offer", count: 18, color: "#059669" },
-  { stage: "Hired", count: 8, color: "#10b981" },
+  { stage: "Applied", count: 0, color: "#4f46e5" },
+  { stage: "Screening", count: 0, color: "#0284c7" },
+  { stage: "Interview", count: 0, color: "#d97706" },
+  { stage: "Offer", count: 0, color: "#059669" },
+  { stage: "Hired", count: 0, color: "#10b981" },
 ];
 
 const topCandidates = [
@@ -38,46 +30,22 @@ const topCandidates = [
 function StatCard({ stat }: { stat: typeof initialStats[0] }) {
   return (
     <div
+      className="dashboard-card"
       style={{
         background: "#ffffff",
-        border: "1px solid var(--border)",
         borderRadius: "16px",
-        padding: "24px",
-        position: "relative",
-        overflow: "hidden",
+        padding: "20px",
+        border: "1px solid var(--border)",
         boxShadow: "var(--shadow-card)",
       }}
     >
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: "3px",
-          background: stat.color,
-          borderRadius: "16px 16px 0 0",
-        }}
-      />
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "8px" }}>
+          <p style={{ fontSize: "0.825rem", color: "var(--text-muted)", fontWeight: 500, marginBottom: "4px" }}>
             {stat.label}
           </p>
-          <p
-            style={{
-              fontFamily: "var(--font-display, 'Outfit', sans-serif)",
-              fontSize: "2.25rem",
-              fontWeight: 800,
-              color: "var(--text-primary)",
-              letterSpacing: "-0.02em",
-              lineHeight: 1,
-            }}
-          >
+          <p style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--text-primary)", fontFamily: "var(--font-display, 'Outfit', sans-serif)" }}>
             {stat.value}
-          </p>
-          <p style={{ fontSize: "0.75rem", color: "#059669", fontWeight: 600, marginTop: "8px" }}>
-            {stat.change} this week
           </p>
         </div>
         <div
@@ -103,7 +71,7 @@ function StatCard({ stat }: { stat: typeof initialStats[0] }) {
 export default function RecruiterOverviewPage() {
   const { user } = useAppSelector((state) => state.auth);
   const [statsData, setStatsData] = useState(initialStats);
-  const [jobsList, setJobsList] = useState(fallbackJobs);
+  const [jobsList, setJobsList] = useState<any[]>([]);
 
   // Post Job Modal State
   const [showPostModal, setShowPostModal] = useState(false);
@@ -128,21 +96,23 @@ export default function RecruiterOverviewPage() {
 
   useEffect(() => {
     dashboardApi.getRecruiterDashboard().then((res) => {
-      if (res.success && res.dashboard) {
-        const { stats: dStats, jobs: dJobs } = res.dashboard;
-        if (dStats) {
-          setStatsData([
-            { label: "Jobs Posted", value: String(dStats.totalJobs || 0), change: "+1", trend: "up", icon: "💼", color: "#4f46e5" },
-            { label: "Applications", value: String(dStats.totalApplications || 0), change: "+4", trend: "up", icon: "📋", color: "#0284c7" },
-            { label: "Interviews", value: "8", change: "+2", trend: "up", icon: "🤝", color: "#059669" },
-            { label: "Hired This Month", value: "3", change: "+1", trend: "up", icon: "🎉", color: "#d97706" },
-          ]);
-        }
+      if (res.success) {
+        const dJobs = res.dashboard?.jobs || res.data?.allJobs || [];
+        const totalApps = res.dashboard?.stats?.totalApplications ?? res.data?.totalApplicants ?? 0;
+        const totalJobsCount = dJobs.length || res.dashboard?.stats?.totalJobs || 0;
+
+        setStatsData([
+          { label: "Jobs Posted", value: String(totalJobsCount), change: "+1", trend: "up", icon: "💼", color: "#4f46e5" },
+          { label: "Applications", value: String(totalApps), change: "+4", trend: "up", icon: "📋", color: "#0284c7" },
+          { label: "Interviews", value: String(res.data?.interviews?.length || 2), change: "+2", trend: "up", icon: "🤝", color: "#059669" },
+          { label: "Hired This Month", value: "3", change: "+1", trend: "up", icon: "🎉", color: "#d97706" },
+        ]);
+
         if (Array.isArray(dJobs) && dJobs.length > 0) {
           setJobsList(
             dJobs.map((j: any) => ({
               title: j.title,
-              applicants: j.applicationCount || 0,
+              applicants: j.applicationCount ?? j.applicantsCount ?? 0,
               status: j.status === "Published" ? "Active" : "Draft",
               posted: new Date(j.createdAt).toLocaleDateString(),
               views: 120,
