@@ -1,10 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import ReduxProvider from "@/lib/redux/ReduxProvider";
-import SplashScreen from "@/components/SplashScreen";
+
+const Footer = dynamic(() => import("@/components/Footer"), {
+  ssr: true,
+});
+
+const SplashScreen = dynamic(() => import("@/components/SplashScreen"), {
+  ssr: false,
+});
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
