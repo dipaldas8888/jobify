@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useDeferredValue } from "react";
+
 import { mockJobs, type Job, type JobType, type ExperienceLevel } from "@/data/mockJobs";
 import { jobsApi } from "@/lib/api";
 import { useAppSelector } from "@/lib/redux/store";
@@ -16,7 +17,7 @@ const EXPERIENCE_LEVELS: ExperienceLevel[] = [
   "Director",
 ];
 
-function JobCard({ job }: { job: Job }) {
+function JobCard({ job, onApply }: { job: Job; onApply?: (job: Job) => void }) {
   const router = useRouter();
 
   return (
@@ -153,14 +154,14 @@ function JobCard({ job }: { job: Job }) {
                 {job.salary}
               </span>
 
-              <Link
-                href={`/jobs/${job.id}/apply`}
-                onClick={(e) => e.stopPropagation()}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onApply ? onApply(job) : undefined; }}
                 className="btn-primary"
-                style={{ padding: "6px 14px", fontSize: "0.8rem", borderRadius: "8px", textDecoration: "none" }}
+                style={{ padding: "6px 14px", fontSize: "0.8rem", borderRadius: "8px" }}
               >
                 Apply Now
-              </Link>
+              </button>
             </div>
           </div>
         </div>
@@ -225,6 +226,7 @@ export default function JobsPage() {
   const [selectedTypes, setSelectedTypes] = useState<JobType[]>([]);
   const [selectedExp, setSelectedExp] = useState<ExperienceLevel | "">("");
   const [sortBy, setSortBy] = useState<"recent" | "salary" | "applicants">("recent");
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const [backendJobs, setBackendJobs] = useState<Job[]>([]);
   const [isLoadingBackend, setIsLoadingBackend] = useState(true);
@@ -280,11 +282,14 @@ export default function JobsPage() {
     );
   };
 
+  const deferredSearch = useDeferredValue(searchQuery);
+  const deferredLocation = useDeferredValue(locationQuery);
+
   const filteredJobs = useMemo(() => {
     let jobs = [...allJobsList];
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+    if (deferredSearch.trim()) {
+      const q = deferredSearch.toLowerCase();
       jobs = jobs.filter(
         (j) =>
           j.title.toLowerCase().includes(q) ||
@@ -293,8 +298,8 @@ export default function JobsPage() {
       );
     }
 
-    if (locationQuery.trim()) {
-      const loc = locationQuery.toLowerCase();
+    if (deferredLocation.trim()) {
+      const loc = deferredLocation.toLowerCase();
       jobs = jobs.filter((j) => j.location.toLowerCase().includes(loc));
     }
 
@@ -320,6 +325,8 @@ export default function JobsPage() {
     setSelectedExp("");
     setSortBy("recent");
   };
+
+  const clearAllFilters = clearFilters;
 
   const hasActiveFilters =
     searchQuery || locationQuery || selectedTypes.length > 0 || selectedExp;
@@ -401,22 +408,8 @@ export default function JobsPage() {
           </div>
 
           {/* Search Bar */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr auto 1fr auto",
-              gap: "10px",
-              alignItems: "center",
-              background: "#ffffff",
-              border: "1px solid var(--border)",
-              borderRadius: "14px",
-              padding: "8px",
-              flexWrap: "wrap",
-              boxShadow: "var(--shadow-card)",
-            }}
-            role="search"
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px" }}>
+          <div className="jobs-search-bar" role="search">
+            <div className="search-row" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px" }}>
               <span style={{ fontSize: "1.1rem" }}>🔍</span>
               <input
                 type="text"
@@ -438,14 +431,11 @@ export default function JobsPage() {
             </div>
 
             <div
-              style={{
-                width: "1px",
-                height: "32px",
-                background: "var(--border)",
-              }}
+              className="search-divider"
+              style={{ width: "1px", height: "32px", background: "var(--border)" }}
             />
 
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px" }}>
+            <div className="search-row" style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px" }}>
               <span style={{ fontSize: "1.1rem" }}>📍</span>
               <input
                 type="text"
@@ -480,16 +470,75 @@ export default function JobsPage() {
 
       {/* ===================== MAIN CONTENT ===================== */}
       <div className="container-main" style={{ padding: "32px 24px" }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "280px 1fr",
-            gap: "28px",
-            alignItems: "start",
-          }}
+        {/* Mobile filter toggle — only visible on mobile via CSS */}
+        <button
+          className="filter-toggle-btn"
+          onClick={() => setFilterOpen(true)}
+          type="button"
+          aria-label="Open filters"
+          style={{ marginBottom: "16px" }}
         >
+          <span>🔧</span>
+          <span>Filters</span>
+          {hasActiveFilters && (
+            <span style={{
+              background: "#4f46e5",
+              color: "white",
+              borderRadius: "50px",
+              fontSize: "0.65rem",
+              fontWeight: 700,
+              padding: "2px 7px",
+              marginLeft: "4px",
+            }}>
+              {selectedTypes.length + (selectedExp ? 1 : 0)}
+            </span>
+          )}
+        </button>
+
+        {/* Sidebar overlay (mobile) */}
+        <div
+          className={`sidebar-overlay${filterOpen ? " active" : ""}`}
+          onClick={() => setFilterOpen(false)}
+          aria-hidden="true"
+        />
+
+        <div className="jobs-layout">
           {/* ===== SIDEBAR FILTERS ===== */}
-          <aside aria-label="Job filters" style={{ position: "sticky", top: "88px" }}>
+          <aside
+            aria-label="Job filters"
+            className={`jobs-filter-sidebar${filterOpen ? " open" : ""}`}
+            style={{ background: "#ffffff" }}
+          >
+            {/* Mobile drawer header with close button */}
+            <div className="drawer-header-mobile" style={{
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "16px 16px 12px",
+              borderBottom: "1px solid var(--border)",
+              marginBottom: "8px",
+              width: "100%",
+              boxSizing: "border-box" as const,
+            }}>
+              <span style={{ fontWeight: 700, fontSize: "1rem", color: "var(--text-primary)" }}>🔧 Filters</span>
+              <button
+                type="button"
+                onClick={() => setFilterOpen(false)}
+                style={{
+                  background: "rgba(79,70,229,0.08)",
+                  border: "1px solid rgba(79,70,229,0.2)",
+                  borderRadius: "8px",
+                  padding: "6px 12px",
+                  cursor: "pointer",
+                  fontSize: "0.85rem",
+                  fontWeight: 700,
+                  color: "#4f46e5",
+                  fontFamily: "inherit",
+                }}
+              >
+                ✕ Close
+              </button>
+            </div>
+
             <div
               style={{
                 background: "#ffffff",
@@ -497,6 +546,7 @@ export default function JobsPage() {
                 borderRadius: "16px",
                 padding: "24px",
                 boxShadow: "var(--shadow-card)",
+                flex: 1,
               }}
             >
               <div
@@ -677,6 +727,18 @@ export default function JobsPage() {
                 </div>
               </div>
             </div>
+
+            {/* Close button for mobile filter sidebar */}
+            <div style={{ display: "flex", justifyContent: "flex-end", padding: "12px 0 0" }}>
+              <button
+                className="filter-toggle-btn"
+                onClick={() => setFilterOpen(false)}
+                type="button"
+                style={{ fontSize: "0.8rem", padding: "8px 14px" }}
+              >
+                ✕ Close Filters
+              </button>
+            </div>
           </aside>
 
           {/* ===== JOBS LIST ===== */}
@@ -815,7 +877,7 @@ export default function JobsPage() {
               </div>
             )}
           </div>
-        </div>
+        </div>{/* end jobs-layout */}
       </div>
 
       {/* Application Modal */}

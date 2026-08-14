@@ -412,19 +412,7 @@ export default function HomePage() {
                         <span style={{ fontWeight: 600, color: "#4f46e5" }}>{job.company}</span>
                         <span>📍 {job.location}</span>
                         <span>🕐 {job.postedAt}</span>
-                        <span>👥 {job.applicants} applicants</span>
                       </div>
-                      <p
-                        style={{
-                          fontSize: "0.875rem",
-                          color: "var(--text-secondary)",
-                          lineHeight: 1.6,
-                          marginBottom: "14px",
-                          maxWidth: "600px",
-                        }}
-                      >
-                        {job.description}
-                      </p>
                       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                         {job.tags.map((tag) => (
                           <span key={tag} className="badge badge-accent">

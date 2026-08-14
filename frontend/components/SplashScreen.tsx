@@ -14,16 +14,16 @@ export default function SplashScreen() {
       return;
     }
 
-    // Start fade out after 1.2s
+    // Fast fade out after 350ms
     const fadeTimer = setTimeout(() => {
       setIsFadingOut(true);
-    }, 1200);
+    }, 350);
 
-    // Completely remove after 1.6s
+    // Completely remove after 550ms
     const hideTimer = setTimeout(() => {
       setIsVisible(false);
       sessionStorage.setItem("jobify_splash_shown", "true");
-    }, 1600);
+    }, 550);
 
     return () => {
       clearTimeout(fadeTimer);

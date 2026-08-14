@@ -125,7 +125,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg-base)" }}>
       <AdminSidebar />
-      <div style={{ marginLeft: "260px", flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div className="dashboard-main" style={{ display: "flex", flexDirection: "column" }}>
         <AdminHeader />
         <div style={{ flex: 1, padding: "28px", overflowX: "hidden" }}>{children}</div>
       </div>

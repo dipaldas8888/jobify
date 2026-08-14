@@ -90,6 +90,57 @@ export const deleteJobAdmin = async (req, res) => {
   }
 };
 
+export const approveJobAdmin = async (req, res) => {
+  try {
+    const job = await Job.findById(req.params.id);
+    if (!job) return res.status(404).json({ success: false, message: "Job not found" });
+
+    job.status = "Published";
+    await job.save();
+    res.json({ success: true, message: "Job approved and published live!", data: job });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getCompaniesAdmin = async (req, res) => {
+  try {
+    const metadataCompanies = await Metadata.find({ type: "Company" }).populate("createdBy", "name email");
+    const recruiterUsers = await User.find({ role: "recruiter", companyName: { $exists: true, $ne: "" } }).select("name email companyName createdAt");
+
+    const companyMap = new Map();
+
+    metadataCompanies.forEach(c => {
+      companyMap.set(c.name.toLowerCase(), {
+        id: c._id,
+        name: c.name,
+        industry: c.description || "Technology Partner",
+        createdBy: c.createdBy ? c.createdBy.email : "System",
+        status: c.isApproved ? "Verified" : "Pending",
+        createdAt: c.createdAt,
+      });
+    });
+
+    recruiterUsers.forEach(u => {
+      if (!companyMap.has(u.companyName.toLowerCase())) {
+        companyMap.set(u.companyName.toLowerCase(), {
+          id: u._id,
+          name: u.companyName,
+          industry: "Employer Partner",
+          createdBy: u.email,
+          status: "Verified",
+          createdAt: u.createdAt,
+        });
+      }
+    });
+
+    const companiesList = Array.from(companyMap.values());
+    res.json({ success: true, count: companiesList.length, data: companiesList });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // ==========================================
 // 3. Reports Moderation
 // ==========================================

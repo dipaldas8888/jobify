@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/store";
@@ -25,11 +25,7 @@ export default function AdminSidebar() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
@@ -39,36 +35,44 @@ export default function AdminSidebar() {
     router.push("/");
   };
 
-  const initials =
-    mounted && user?.name
-      ? user.name
-          .split(" ")
-          .map((n) => n[0])
-          .join("")
-          .toUpperCase()
-          .slice(0, 2)
-      : "AD";
+  const initials = user?.name
+    ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : "AD";
 
-  const displayName = mounted && user?.name ? user.name : "Platform Admin";
-  const displayEmail = mounted && user?.email ? user.email : "admin@jobify.com";
+  const displayName = user?.name || "Platform Admin";
+  const displayEmail = user?.email || "admin@jobify.com";
 
   return (
-    <aside
-      style={{
-        width: "260px",
-        minHeight: "100vh",
-        background: "linear-gradient(180deg, #090d16 0%, #170a0a 100%)",
-        borderRight: "1px solid rgba(255, 255, 255, 0.07)",
-        display: "flex",
-        flexDirection: "column",
-        position: "fixed",
-        top: 0,
-        left: 0,
-        zIndex: 50,
-        overflowY: "auto",
-        boxShadow: "4px 0 25px rgba(0, 0, 0, 0.3)",
-      }}
-    >
+    <>
+      {/* Mobile overlay */}
+      <div
+        className={`sidebar-overlay${sidebarOpen ? " active" : ""}`}
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden="true"
+      />
+
+      {/* Mobile FAB toggle */}
+      <button
+        className="dashboard-mobile-toggle"
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+        type="button"
+      >
+        {sidebarOpen ? "✕" : "☰"}
+      </button>
+
+      <aside
+        className={`dashboard-sidebar${sidebarOpen ? " open" : ""}`}
+        style={{
+          minHeight: "100vh",
+          background: "linear-gradient(180deg, #090d16 0%, #170a0a 100%)",
+          borderRight: "1px solid rgba(255, 255, 255, 0.07)",
+          display: "flex",
+          flexDirection: "column",
+          overflowY: "auto",
+          boxShadow: "4px 0 25px rgba(0, 0, 0, 0.3)",
+        }}
+      >
       {/* Logo / Brand Header */}
       <div
         style={{
@@ -328,5 +332,12 @@ export default function AdminSidebar() {
         </button>
       </div>
     </aside>
+
+    <style>{`
+      @media (max-width: 768px) {
+        .sidebar-close-btn { display: flex !important; }
+      }
+    `}</style>
+  </>
   );
 }

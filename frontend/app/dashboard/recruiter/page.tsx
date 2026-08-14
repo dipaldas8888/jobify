@@ -231,7 +231,7 @@ export default function RecruiterOverviewPage() {
       </div>
 
       {/* Main Content Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: "20px", alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px", alignItems: "start" }}>
 
         {/* Recent Job Postings */}
         <div

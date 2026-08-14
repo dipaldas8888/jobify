@@ -38,14 +38,18 @@ export const createJob = async (req, res) => {
       workMode,
       description,
       deadline,
-      status: status || "Published",
+      status: req.user.role === "admin" ? (status || "Published") : "Pending",
       education,
       openings: openings || 1,
       recruiter: req.user._id,
     });
 
     const createdJob = await job.save();
-    res.status(201).json({ success: true, data: createdJob });
+    res.status(201).json({
+      success: true,
+      message: req.user.role === "admin" ? "Job created and published live." : "Job submitted successfully! It is pending admin approval before appearing live.",
+      data: createdJob
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

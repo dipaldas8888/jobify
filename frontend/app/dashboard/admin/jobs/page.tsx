@@ -1,54 +1,207 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { adminApi } from "@/lib/api";
 
-const jobs = [
-  { id: 1, title: "Senior Frontend Engineer", company: "Stripe", status: "Active", applications: 48, posted: "Aug 3, 2026", flagged: false, plan: "Enterprise" },
-  { id: 2, title: "AI Research Scientist", company: "Anthropic", status: "Active", applications: 234, posted: "Aug 2, 2026", flagged: false, plan: "Enterprise" },
-  { id: 3, title: "Software Engineer Intern", company: "XYZ Corp", status: "Flagged", applications: 12, posted: "Aug 1, 2026", flagged: true, plan: "Free" },
-  { id: 4, title: "Full Stack Developer", company: "Vercel", status: "Active", applications: 92, posted: "Jul 31, 2026", flagged: false, plan: "Pro" },
-  { id: 5, title: "Product Manager", company: "Notion", status: "Pending", applications: 0, posted: "Aug 4, 2026", flagged: false, plan: "Pro" },
-  { id: 6, title: "iOS Developer", company: "Spotify", status: "Active", applications: 73, posted: "Jul 30, 2026", flagged: false, plan: "Enterprise" },
-  { id: 7, title: "Marketing Specialist", company: "Unknown Co", status: "Flagged", applications: 5, posted: "Jul 29, 2026", flagged: true, plan: "Free" },
-  { id: 8, title: "Data Engineer", company: "Airbnb", status: "Active", applications: 55, posted: "Jul 28, 2026", flagged: false, plan: "Enterprise" },
-];
+interface JobItem {
+  _id: string;
+  id?: string;
+  title: string;
+  company?: string;
+  companyName?: string;
+  recruiter?: {
+    name?: string;
+    email?: string;
+    companyName?: string;
+  };
+  location: string;
+  salary?: string;
+  status?: string;
+  createdAt: string;
+  applicationCount?: number;
+  applicantsCount?: number;
+}
 
 const statusColors: Record<string, { bg: string; text: string; border: string }> = {
+  Pending: { bg: "rgba(217,119,6,0.08)", text: "#b45309", border: "rgba(217,119,6,0.25)" },
+  Published: { bg: "rgba(5,150,105,0.08)", text: "#047857", border: "rgba(5,150,105,0.2)" },
   Active: { bg: "rgba(5,150,105,0.08)", text: "#047857", border: "rgba(5,150,105,0.2)" },
-  Pending: { bg: "rgba(217,119,6,0.08)", text: "#b45309", border: "rgba(217,119,6,0.2)" },
-  Flagged: { bg: "rgba(220,38,38,0.08)", text: "#b91c1c", border: "rgba(220,38,38,0.2)" },
-  Removed: { bg: "rgba(100,116,139,0.08)", text: "#64748b", border: "rgba(100,116,139,0.2)" },
+  Closed: { bg: "rgba(220,38,38,0.08)", text: "#b91c1c", border: "rgba(220,38,38,0.2)" },
 };
 
 export default function AdminJobsPage() {
-  const [filter, setFilter] = useState("All");
+  const [jobs, setJobs] = useState<JobItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState<"All" | "Pending" | "Active" | "Closed">("All");
   const [search, setSearch] = useState("");
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  const fetchJobs = async () => {
+    setIsLoading(true);
+    try {
+      const res = await adminApi.getJobs();
+      if (res.success) {
+        const list = res.data || res.jobs || [];
+        setJobs(list);
+      }
+    } catch (err) {
+      console.error("Error fetching admin jobs:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleApproveJob = async (job: JobItem) => {
+    const jobId = job._id || job.id || "";
+    try {
+      const res = await adminApi.approveJob(jobId);
+      if (res.success) {
+        setActionMsg(`Job "${job.title}" has been approved and published live!`);
+        setJobs((prev) =>
+          prev.map((j) => ((j._id || j.id) === jobId ? { ...j, status: "Published" } : j))
+        );
+        setTimeout(() => setActionMsg(null), 4000);
+      } else {
+        alert(res.message || "Failed to approve job.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to approve job.");
+    }
+  };
+
+  const handleDeleteJob = async (job: JobItem) => {
+    const jobId = job._id || job.id || "";
+    if (!confirm(`Are you sure you want to remove the job listing "${job.title}"?`)) return;
+
+    try {
+      const res = await adminApi.deleteJob(jobId);
+      if (res.success) {
+        setJobs((prev) => prev.filter((j) => (j._id || j.id) !== jobId));
+      } else {
+        alert(res.message || "Failed to remove job.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to remove job.");
+    }
+  };
+
+  const pendingJobsCount = jobs.filter((j) => j.status === "Pending").length;
+  const activeJobsCount = jobs.filter((j) => j.status === "Published" || j.status === "Active" || !j.status).length;
+  const closedJobsCount = jobs.filter((j) => j.status === "Closed" || j.status === "Draft").length;
 
   const filtered = jobs.filter((j) => {
-    const matchFilter = filter === "All" || j.status === filter;
-    const matchSearch = j.title.toLowerCase().includes(search.toLowerCase()) || j.company.toLowerCase().includes(search.toLowerCase());
-    return matchFilter && matchSearch;
-  });
+    const currentStatus = j.status || "Published";
+    const matchesFilter =
+      filter === "All" ||
+      (filter === "Pending" && currentStatus === "Pending") ||
+      (filter === "Active" && (currentStatus === "Published" || currentStatus === "Active")) ||
+      (filter === "Closed" && (currentStatus === "Closed" || currentStatus === "Draft"));
 
-  const counts = {
-    All: jobs.length,
-    Active: jobs.filter(j => j.status === "Active").length,
-    Pending: jobs.filter(j => j.status === "Pending").length,
-    Flagged: jobs.filter(j => j.status === "Flagged").length,
-  };
+    const compName = j.companyName || j.company || j.recruiter?.companyName || j.recruiter?.name || "";
+    const matchesSearch =
+      j.title.toLowerCase().includes(search.toLowerCase()) ||
+      compName.toLowerCase().includes(search.toLowerCase()) ||
+      (j.location && j.location.toLowerCase().includes(search.toLowerCase()));
+
+    return matchesFilter && matchesSearch;
+  });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      {/* Page Title */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+        <div>
+          <h2 style={{ fontSize: "1.3rem", fontWeight: 800, color: "var(--text-primary)" }}>Job Listings Moderation & Approval</h2>
+          <p style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Review recruiter job postings, approve pending submissions, or delete non-compliant listings.</p>
+        </div>
+      </div>
+
+      {actionMsg && (
+        <div
+          style={{
+            padding: "12px 18px",
+            borderRadius: "12px",
+            background: "rgba(5,150,105,0.08)",
+            border: "1px solid rgba(5,150,105,0.25)",
+            color: "#047857",
+            fontSize: "0.875rem",
+            fontWeight: 700,
+          }}
+        >
+          ✅ {actionMsg}
+        </div>
+      )}
+
+      {/* Pending Banner Alert if pending jobs exist */}
+      {pendingJobsCount > 0 && (
+        <div
+          style={{
+            background: "linear-gradient(135deg, rgba(217,119,6,0.08), rgba(245,158,11,0.05))",
+            border: "1px solid rgba(217,119,6,0.3)",
+            borderRadius: "14px",
+            padding: "16px 20px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "16px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ fontSize: "1.3rem" }}>⏳</span>
+            <div>
+              <p style={{ fontWeight: 700, fontSize: "0.9rem", color: "#b45309" }}>
+                {pendingJobsCount} {pendingJobsCount === 1 ? "job posting is" : "job postings are"} awaiting admin approval
+              </p>
+              <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                Review and approve employer job submissions before they appear live on the job board.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFilter("Pending")}
+            style={{
+              padding: "8px 18px",
+              borderRadius: "8px",
+              background: "#b45309",
+              color: "white",
+              border: "none",
+              fontSize: "0.825rem",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Filter Pending ({pendingJobsCount})
+          </button>
+        </div>
+      )}
 
       {/* Quick Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px" }}>
         {[
-          { label: "Total Jobs", value: "52,411", color: "#4f46e5" },
-          { label: "Active", value: "48,201", color: "#059669" },
-          { label: "Pending Review", value: "1,840", color: "#d97706" },
-          { label: "Flagged", value: "370", color: "#dc2626" },
+          { label: "Total Job Listings", value: jobs.length, color: "#4f46e5" },
+          { label: "Pending Approval", value: pendingJobsCount, color: "#d97706" },
+          { label: "Active Jobs", value: activeJobsCount, color: "#059669" },
+          { label: "Closed / Paused", value: closedJobsCount, color: "#dc2626" },
         ].map((s) => (
-          <div key={s.label} style={{ background: "#ffffff", border: "1px solid var(--border)", borderRadius: "14px", padding: "18px", position: "relative", overflow: "hidden", boxShadow: "var(--shadow-card)" }}>
+          <div
+            key={s.label}
+            style={{
+              background: "#ffffff",
+              border: "1px solid var(--border)",
+              borderRadius: "14px",
+              padding: "18px",
+              position: "relative",
+              overflow: "hidden",
+              boxShadow: "var(--shadow-card)",
+            }}
+          >
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", background: s.color, borderRadius: "14px 14px 0 0" }} />
             <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" }}>{s.label}</p>
             <p style={{ fontSize: "1.6rem", fontFamily: "var(--font-display,'Outfit',sans-serif)", fontWeight: 800, color: "var(--text-primary)" }}>{s.value}</p>
@@ -56,103 +209,155 @@ export default function AdminJobsPage() {
         ))}
       </div>
 
-      {/* Flagged Alert */}
-      {jobs.some(j => j.flagged) && (
-        <div style={{ background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.2)", borderRadius: "12px", padding: "14px 18px", display: "flex", alignItems: "center", gap: "10px" }}>
-          <span style={{ fontSize: "1.1rem" }}>🚩</span>
-          <p style={{ fontSize: "0.875rem", color: "#b91c1c", fontWeight: 600 }}>
-            {jobs.filter(j => j.flagged).length} flagged listings require review
-          </p>
-          <button
-            type="button"
-            onClick={() => setFilter("Flagged")}
-            style={{ marginLeft: "auto", padding: "6px 14px", borderRadius: "8px", background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.25)", color: "#b91c1c", cursor: "pointer", fontFamily: "inherit", fontSize: "0.8rem", fontWeight: 700 }}
-          >
-            Review Flagged
-          </button>
-        </div>
-      )}
-
       {/* Filters & Search */}
-      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ display: "flex", gap: "6px" }}>
-          {(["All", "Active", "Pending", "Flagged"] as const).map((f) => (
+      <div className="recruiter-jobs-header">
+        <div style={{ display: "flex", gap: "6px", overflowX: "auto", paddingBottom: "4px", maxWidth: "100%" }}>
+          {(["All", "Pending", "Active", "Closed"] as const).map((f) => (
             <button
               key={f}
               type="button"
               onClick={() => setFilter(f)}
               style={{
-                padding: "7px 14px",
+                padding: "7px 16px",
                 borderRadius: "50px",
                 border: filter === f ? "1px solid rgba(220,38,38,0.3)" : "1px solid var(--border)",
                 background: filter === f ? "rgba(220,38,38,0.08)" : "#ffffff",
                 color: filter === f ? "#b91c1c" : "var(--text-secondary)",
                 fontWeight: filter === f ? 700 : 500,
-                fontSize: "0.8rem",
+                fontSize: "0.825rem",
                 cursor: "pointer",
                 fontFamily: "inherit",
                 boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                whiteSpace: "nowrap",
               }}
             >
-              {f} ({counts[f as keyof typeof counts] ?? jobs.length})
+              {f === "Pending" ? "Pending Approval ⏳" : f}{" "}
+              <span style={{ opacity: 0.7 }}>
+                ({f === "All" ? jobs.length : f === "Pending" ? pendingJobsCount : f === "Active" ? activeJobsCount : closedJobsCount})
+              </span>
             </button>
           ))}
         </div>
+
         <input
           type="text"
-          placeholder="Search jobs or companies…"
+          placeholder="Search job title, company, or location…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="search-input"
-          style={{ marginLeft: "auto", width: "240px", padding: "9px 14px", borderRadius: "10px" }}
+          style={{ width: "240px", padding: "9px 14px", borderRadius: "10px" }}
           aria-label="Search jobs"
         />
       </div>
 
       {/* Jobs Table */}
       <div style={{ background: "#ffffff", border: "1px solid var(--border)", borderRadius: "16px", overflow: "hidden", boxShadow: "var(--shadow-card)" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 100px 80px 110px 120px", padding: "12px 20px", borderBottom: "1px solid var(--border)", background: "#f8fafc" }}>
-          {["Job Title / Company", "Plan", "Applications", "Posted", "Status", "Actions"].map((col) => (
-            <div key={col} style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--text-muted)" }}>{col}</div>
-          ))}
-        </div>
-
-        {filtered.map((job, i) => {
-          const sc = statusColors[job.status];
-          return (
-            <div
-              key={job.id}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 120px 100px 80px 110px 120px",
-                padding: "14px 20px",
-                borderBottom: i < filtered.length - 1 ? "1px solid var(--border)" : "none",
-                alignItems: "center",
-                background: job.flagged ? "rgba(220,38,38,0.03)" : "transparent",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = job.flagged ? "rgba(220,38,38,0.06)" : "#f8fafc")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = job.flagged ? "rgba(220,38,38,0.03)" : "transparent")}
-            >
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <p style={{ fontWeight: 600, fontSize: "0.875rem", color: "var(--text-primary)" }}>{job.title}</p>
-                  {job.flagged && <span style={{ fontSize: "0.8rem" }}>🚩</span>}
-                </div>
-                <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "2px" }}>{job.company}</p>
-              </div>
-              <span style={{ fontSize: "0.825rem", fontWeight: 700, color: job.plan === "Enterprise" ? "#b45309" : job.plan === "Pro" ? "#4338ca" : "var(--text-muted)" }}>{job.plan}</span>
-              <span style={{ fontSize: "0.9rem", fontWeight: 600, color: "var(--text-primary)" }}>{job.applications}</span>
-              <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{job.posted.split(",")[0]}</span>
-              <span style={{ display: "inline-block", padding: "4px 10px", borderRadius: "50px", fontSize: "0.72rem", fontWeight: 700, background: sc.bg, color: sc.text, border: `1px solid ${sc.border}`, width: "fit-content" }}>{job.status}</span>
-              <div style={{ display: "flex", gap: "5px" }}>
-                <button type="button" style={{ padding: "5px 9px", borderRadius: "7px", background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.2)", color: "#b91c1c", fontSize: "0.72rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>View</button>
-                {job.flagged && <button type="button" style={{ padding: "5px 9px", borderRadius: "7px", background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.25)", color: "#991b1b", fontSize: "0.72rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>Remove</button>}
-                {!job.flagged && <button type="button" style={{ padding: "5px 9px", borderRadius: "7px", background: "#f1f5f9", border: "1px solid var(--border)", color: "var(--text-muted)", fontSize: "0.72rem", cursor: "pointer", fontFamily: "inherit" }}>···</button>}
-              </div>
+        <div className="table-responsive-wrapper">
+          <div className="table-min-width">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 90px 120px 160px", padding: "12px 20px", borderBottom: "1px solid var(--border)", background: "#f8fafc" }}>
+              {["Job Title / Employer", "Location", "Applicants", "Status", "Actions"].map((col) => (
+                <div key={col} style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--text-muted)" }}>{col}</div>
+              ))}
             </div>
-          );
-        })}
+
+            {isLoading ? (
+              <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
+                <p style={{ fontWeight: 600 }}>Loading job listings from server...</p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
+                <p>No job postings found matching your filters.</p>
+              </div>
+            ) : (
+              filtered.map((job, i) => {
+                const compName = job.companyName || job.company || job.recruiter?.companyName || job.recruiter?.name || "Independent Employer";
+                const isPending = job.status === "Pending";
+                const isJobActive = job.status === "Published" || job.status === "Active";
+                const sc = isPending ? statusColors.Pending : isJobActive ? statusColors.Published : statusColors.Closed;
+                const applicants = job.applicationCount ?? job.applicantsCount ?? 0;
+
+                return (
+                  <div
+                    key={job._id || job.id}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 140px 90px 120px 160px",
+                      padding: "14px 20px",
+                      borderBottom: i < filtered.length - 1 ? "1px solid var(--border)" : "none",
+                      alignItems: "center",
+                      background: isPending ? "rgba(217,119,6,0.03)" : "transparent",
+                    }}
+                  >
+                    <div>
+                      <Link href={`/jobs/${job._id || job.id}`} style={{ textDecoration: "none" }}>
+                        <p style={{ fontWeight: 600, fontSize: "0.875rem", color: "var(--text-primary)" }} className="hover-underline">
+                          {job.title}
+                        </p>
+                      </Link>
+                      <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "2px" }}>
+                        🏢 {compName} {job.createdAt && `· Submitted ${new Date(job.createdAt).toLocaleDateString()}`}
+                      </p>
+                    </div>
+
+                    <span style={{ fontSize: "0.825rem", color: "var(--text-secondary)" }}>
+                      {job.location || "Remote"}
+                    </span>
+
+                    <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--text-primary)" }}>
+                      {applicants}
+                    </span>
+
+                    <span style={{ display: "inline-block", padding: "4px 10px", borderRadius: "50px", fontSize: "0.72rem", fontWeight: 700, background: sc.bg, color: sc.text, border: `1px solid ${sc.border}`, width: "fit-content" }}>
+                      {isPending ? "Pending Approval" : isJobActive ? "Active" : "Closed"}
+                    </span>
+
+                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                      {isPending ? (
+                        <button
+                          type="button"
+                          onClick={() => handleApproveJob(job)}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: "8px",
+                            background: "#059669",
+                            color: "white",
+                            border: "none",
+                            fontSize: "0.75rem",
+                            cursor: "pointer",
+                            fontWeight: 700,
+                            boxShadow: "0 2px 4px rgba(5,150,105,0.2)",
+                          }}
+                        >
+                          Approve ✅
+                        </button>
+                      ) : (
+                        <Link
+                          href={`/jobs/${job._id || job.id}`}
+                          style={{ padding: "5px 10px", borderRadius: "7px", background: "rgba(79,70,229,0.08)", border: "1px solid rgba(79,70,229,0.2)", color: "#4338ca", fontSize: "0.72rem", textDecoration: "none", fontWeight: 600 }}
+                        >
+                          View
+                        </Link>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteJob(job)}
+                        style={{ padding: "5px 10px", borderRadius: "7px", background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.2)", color: "#b91c1c", fontSize: "0.72rem", cursor: "pointer", fontWeight: 600 }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
       </div>
+
+      <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", textAlign: "right" }}>
+        Showing {filtered.length} of {jobs.length} jobs
+      </p>
     </div>
   );
 }

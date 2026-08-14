@@ -7,6 +7,8 @@ import {
   deleteUser,
   getJobsAdmin,
   deleteJobAdmin,
+  approveJobAdmin,
+  getCompaniesAdmin,
   getReports,
   resolveReport,
   updateMetadataAdmin,
@@ -27,7 +29,12 @@ router.delete("/users/:id", deleteUser);
 
 // Jobs
 router.get("/jobs", getJobsAdmin);
+router.put("/jobs/:id/approve", approveJobAdmin);
 router.delete("/jobs/:id", deleteJobAdmin);
+
+// Companies
+router.get("/companies", getCompaniesAdmin);
+
 
 // Reports
 router.get("/reports", getReports);

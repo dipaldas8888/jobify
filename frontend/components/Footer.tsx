@@ -97,7 +97,7 @@ export default function Footer() {
               type="email"
               placeholder="Enter your email address"
               className="search-input"
-              style={{ flex: "1", minWidth: "240px", borderRadius: "50px" }}
+              style={{ flex: "1", minWidth: "180px", maxWidth: "100%", borderRadius: "50px" }}
               aria-label="Email address for newsletter"
             />
             <button type="submit" className="btn-primary" style={{ whiteSpace: "nowrap" }}>

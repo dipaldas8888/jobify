@@ -114,7 +114,7 @@ export default function RecruiterLayout({ children }: { children: React.ReactNod
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg-base)" }}>
       <RecruiterSidebar />
-      <div style={{ marginLeft: "260px", flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div className="dashboard-main" style={{ display: "flex", flexDirection: "column" }}>
         <DashboardHeader />
         <div style={{ flex: 1, padding: "28px", overflowX: "hidden" }}>{children}</div>
       </div>

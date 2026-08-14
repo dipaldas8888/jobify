@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppDispatch } from "@/lib/redux/store";
 import { setCredentials } from "@/lib/redux/slices/authSlice";
+import { authApi } from "@/lib/api";
+
 
 function VerifyEmailForm() {
   const router = useRouter();

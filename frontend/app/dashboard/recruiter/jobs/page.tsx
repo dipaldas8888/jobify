@@ -189,8 +189,8 @@ export default function RecruiterJobsPage() {
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
 
       {/* Header actions */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
-        <div style={{ display: "flex", gap: "8px" }}>
+      <div className="recruiter-jobs-header">
+        <div style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "4px", maxWidth: "100%" }}>
           {(["All", "Active", "Paused", "Closed"] as const).map((f) => (
             <button
               key={f}
@@ -208,6 +208,7 @@ export default function RecruiterJobsPage() {
                 fontFamily: "inherit",
                 transition: "all 0.2s",
                 boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                whiteSpace: "nowrap",
               }}
             >
               {f} <span style={{ opacity: 0.7 }}>({counts[f]})</span>
@@ -215,14 +216,14 @@ export default function RecruiterJobsPage() {
           ))}
         </div>
 
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+        <div className="recruiter-jobs-search-container">
           <input
             type="text"
             placeholder="Search jobs…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="search-input"
-            style={{ width: "220px", padding: "9px 14px", borderRadius: "10px" }}
+            style={{ padding: "9px 14px", borderRadius: "10px" }}
             aria-label="Search job postings"
           />
           <button
@@ -241,6 +242,8 @@ export default function RecruiterJobsPage() {
 
       {/* Table */}
       <div style={{ background: "#ffffff", border: "1px solid var(--border)", borderRadius: "16px", overflow: "hidden", boxShadow: "var(--shadow-card)" }}>
+        <div className="table-responsive-wrapper">
+          <div className="table-min-width">
         {/* Table Header */}
         <div
           style={{
@@ -343,6 +346,8 @@ export default function RecruiterJobsPage() {
             );
           })
         )}
+          </div>
+        </div>
       </div>
 
       {/* Summary */}
@@ -410,7 +415,7 @@ export default function RecruiterJobsPage() {
             )}
 
             <form onSubmit={handleCreateJob} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div className="form-grid-2">
                 <div>
                   <label style={{ display: "block", fontSize: "0.825rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>
                     Job Title *
@@ -441,7 +446,7 @@ export default function RecruiterJobsPage() {
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div className="form-grid-2">
                 <div>
                   <label style={{ display: "block", fontSize: "0.825rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>
                     Location *
@@ -471,7 +476,7 @@ export default function RecruiterJobsPage() {
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div className="form-grid-2">
                 <div>
                   <label style={{ display: "block", fontSize: "0.825rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>
                     Job Type

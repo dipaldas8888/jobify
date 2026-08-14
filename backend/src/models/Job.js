@@ -22,8 +22,8 @@ const jobSchema = new mongoose.Schema(
     deadline: { type: Date }, // Expiry date
     status: {
       type: String,
-      enum: ["Draft", "Published"],
-      default: "Published",
+      enum: ["Draft", "Pending", "Published", "Closed", "Rejected"],
+      default: "Pending",
     },
     education: { type: String }, // e.g. "Bachelor's Degree", "Master's"
     openings: { type: Number, default: 1 },
