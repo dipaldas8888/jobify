@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
+import StickerPeelLogo from "@/components/StickerPeelLogo";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/store";
+
 import { logout } from "@/lib/redux/slices/authSlice";
 
 const navLinks = [
@@ -71,28 +73,9 @@ export default function Navbar() {
             height: "68px",
           }}
         >
-          {/* Logo */}
-          <Link href="/" style={{ textDecoration: "none" }}>
-            <span className="logo-text" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span
-                style={{
-                  width: "34px",
-                  height: "34px",
-                  borderRadius: "10px",
-                  background: "linear-gradient(135deg, #4f46e5, #6366f1)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "16px",
-                  color: "white",
-                  boxShadow: "0 2px 8px rgba(79,70,229,0.3)",
-                }}
-              >
-                ⚡
-              </span>
-              Jobify
-            </span>
-          </Link>
+          {/* Sticker Peel Logo */}
+          <StickerPeelLogo size="md" />
+
 
           {/* Desktop Nav Links */}
           <div

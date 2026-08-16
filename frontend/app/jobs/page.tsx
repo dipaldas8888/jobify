@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useMemo, useEffect, useDeferredValue } from "react";
 
+import TextType from "@/components/TextType";
 import { mockJobs, type Job, type JobType, type ExperienceLevel } from "@/data/mockJobs";
 import { jobsApi } from "@/lib/api";
 import { useAppSelector } from "@/lib/redux/store";
+
 
 const JOB_TYPES: JobType[] = ["Full-time", "Part-time", "Contract", "Remote", "Internship"];
 const EXPERIENCE_LEVELS: ExperienceLevel[] = [
@@ -405,8 +407,16 @@ export default function JobsPage() {
               }}
             >
               Find your next{" "}
-              <span className="gradient-text">opportunity</span>
+              <span className="gradient-text">
+                <TextType
+                  text={["opportunity", "tech role", "career move", "remote job"]}
+                  speed={80}
+                  deleteSpeed={50}
+                  pauseDuration={1600}
+                />
+              </span>
             </h1>
+
             <p style={{ color: "var(--text-secondary)", fontSize: "1rem" }}>
               {filteredJobs.length.toLocaleString()} jobs available right now
             </p>

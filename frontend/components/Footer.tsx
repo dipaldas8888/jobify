@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import StickerPeelLogo from "@/components/StickerPeelLogo";
+
 
 const footerLinks = {
   "For Job Seekers": [
@@ -118,25 +120,8 @@ export default function Footer() {
         >
           {/* Brand Column */}
           <div>
-            <Link href="/" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "8px" }}>
-              <span
-                style={{
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "12px",
-                  background: "linear-gradient(135deg, #4f46e5, #6366f1)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "18px",
-                  color: "white",
-                  boxShadow: "0 2px 8px rgba(79,70,229,0.3)",
-                }}
-              >
-                ⚡
-              </span>
-              <span className="logo-text">Jobify</span>
-            </Link>
+            <StickerPeelLogo size="md" />
+
             <p
               style={{
                 color: "var(--text-secondary)",

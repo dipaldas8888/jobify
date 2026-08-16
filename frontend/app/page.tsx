@@ -1,5 +1,12 @@
 "use client";
 
+import TextType from "@/components/TextType";
+import ScrollExpand from "@/components/ScrollExpand";
+import SpotlightCard from "@/components/SpotlightCard";
+import CountUp from "@/components/CountUp";
+import BlurText from "@/components/BlurText";
+
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { jobsApi } from "@/lib/api";
@@ -82,7 +89,8 @@ export default function HomePage() {
               }}
             >
               <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#059669", display: "inline-block", animation: "pulse-orb 2s infinite" }} />
-              🎉 50,000+ jobs from 25,000+ companies
+              🎉 <CountUp to={50000} suffix="+" /> jobs from <CountUp to={25000} suffix="+" /> companies
+
             </div>
 
             {/* Headline */}
@@ -100,8 +108,22 @@ export default function HomePage() {
             >
               Find your dream job
               <br />
-              <span className="gradient-text">faster than ever</span>
+              <span className="gradient-text">
+                <TextType
+                  text={[
+                    "faster than ever",
+                    "in Software Tech",
+                    "in Product Design",
+                    "at Top Companies",
+                    "with Remote Flex",
+                  ]}
+                  speed={80}
+                  deleteSpeed={50}
+                  pauseDuration={1800}
+                />
+              </span>
             </h1>
+
 
             {/* Subheadline */}
             <p
@@ -274,14 +296,11 @@ export default function HomePage() {
                 href={`/jobs?category=${encodeURIComponent(cat.label)}`}
                 style={{ textDecoration: "none" }}
               >
-                <div
-                  className="stat-card"
+                <SpotlightCard
                   style={{
-                    cursor: "pointer",
+                    padding: "24px",
                     textAlign: "center",
-                    animation: `fadeInUp 0.5s ease forwards`,
-                    animationDelay: `${i * 0.07}s`,
-                    opacity: 0,
+                    cursor: "pointer",
                   }}
                 >
                   <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>{cat.icon}</div>
@@ -295,12 +314,13 @@ export default function HomePage() {
                   >
                     {cat.label}
                   </h3>
-                  <p style={{ fontSize: "0.825rem", color: "var(--text-muted)" }}>
+                  <p style={{ fontSize: "0.825rem", color: "var(--text-muted)", margin: 0 }}>
                     {cat.count.toLocaleString()} open roles
                   </p>
-                </div>
+                </SpotlightCard>
               </Link>
             ))}
+
           </div>
         </div>
       </section>
@@ -350,12 +370,10 @@ export default function HomePage() {
                 href={`/jobs/${job.id}`}
                 style={{ textDecoration: "none" }}
               >
-                <div
-                  className="job-card"
+                <SpotlightCard
                   style={{
-                    animation: `fadeInUp 0.5s ease forwards`,
-                    animationDelay: `${i * 0.1}s`,
-                    opacity: 0,
+                    padding: "24px",
+                    cursor: "pointer",
                   }}
                 >
                   <div
@@ -411,34 +429,32 @@ export default function HomePage() {
                       >
                         <span style={{ fontWeight: 600, color: "#4f46e5" }}>{job.company}</span>
                         <span>📍 {job.location}</span>
-                        <span>🕐 {job.postedAt}</span>
+                        <span>⏰ {job.postedAt}</span>
                       </div>
-                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                         {job.tags.map((tag) => (
-                          <span key={tag} className="badge badge-accent">
+                          <span key={tag} className="tag">
                             {tag}
                           </span>
                         ))}
                       </div>
                     </div>
 
-                    {/* Right Side */}
+                    {/* Action Side */}
                     <div
                       style={{
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "flex-end",
-                        gap: "10px",
-                        minWidth: "160px",
+                        justifyContent: "space-between",
+                        gap: "12px",
                       }}
                     >
-                      <span className="badge badge-success">{job.type}</span>
                       <span
                         style={{
-                          fontFamily: "var(--font-display, 'Outfit', sans-serif)",
                           fontWeight: 700,
-                          fontSize: "1rem",
-                          color: "var(--text-primary)",
+                          color: "var(--color-emerald)",
+                          fontSize: "0.95rem",
                         }}
                       >
                         {job.salary}
@@ -457,7 +473,7 @@ export default function HomePage() {
                       </span>
                     </div>
                   </div>
-                </div>
+                </SpotlightCard>
               </Link>
             ))}
           </div>
@@ -470,7 +486,12 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ===================== SCROLL EXPAND SHOWCASE ===================== */}
+      <ScrollExpand />
+
       <div className="section-divider" />
+
+
 
       {/* ===================== HOW IT WORKS ===================== */}
       <section aria-labelledby="how-heading" style={{ padding: "80px 0" }}>
