@@ -19,12 +19,17 @@ export default function Navbar() {
   const dispatch = useAppDispatch();
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
 
+  const [mounted, setMounted] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [authDropdownOpen, setAuthDropdownOpen] = useState(false);
 
   const profileRef = useRef<HTMLDivElement>(null);
   const authDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -135,7 +140,8 @@ export default function Navbar() {
           </div>          {/* Desktop CTA & User Controls */}
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <div className="desktop-auth-controls">
-              {isAuthenticated && user ? (
+              {!mounted ? null : isAuthenticated && user ? (
+
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   {/* Dashboard Button (Matching Image 1) */}
                   <Link
@@ -503,7 +509,8 @@ export default function Navbar() {
               );
             })}
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px", paddingLeft: "4px" }}>
-              {isAuthenticated && user ? (
+              {!mounted ? null : isAuthenticated && user ? (
+
                 <>
                   <Link href={getDashboardHref()} className="btn-primary" style={{ padding: "10px", textAlign: "center", fontSize: "0.875rem" }}>
                     Dashboard

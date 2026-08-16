@@ -4,7 +4,8 @@ export async function apiRequest<T = any>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<{ success: boolean; data?: T; message?: string; [key: string]: any }> {
-  const token = typeof window !== "undefined" ? localStorage.getItem("jobify_token") : null;
+  const token = typeof window !== "undefined" ? (localStorage.getItem("jobify_token") || localStorage.getItem("token")) : null;
+
 
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),
@@ -75,8 +76,21 @@ export const authApi = {
       body: JSON.stringify(payload),
     }),
 
+  forgotPassword: (email: string) =>
+    apiRequest("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: (payload: { email: string; otp: string; newPassword: string }) =>
+    apiRequest("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
   getProfile: () => apiRequest("/users/profile"),
 };
+
 
 // Jobs API methods
 export const jobsApi = {

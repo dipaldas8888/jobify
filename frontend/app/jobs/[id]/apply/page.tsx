@@ -90,6 +90,10 @@ export default function ApplyJobPage({ params }: { params: Promise<{ id: string 
       return;
     }
 
+    if (!resumeFile && !resumeUrl && !user?.photo) {
+      // Check if user has uploaded resume
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -100,10 +104,8 @@ export default function ApplyJobPage({ params }: { params: Promise<{ id: string 
         formData.append("resume", resumeFile);
       } else if (resumeUrl) {
         formData.append("resumeUrl", resumeUrl);
-      } else {
-        // Fallback default resume URL if none uploaded
-        formData.append("resumeUrl", `https://jobify.com/resumes/${user.id || 'candidate'}_resume.pdf`);
       }
+
 
       const res = await jobsApi.applyJob(id, formData);
 
@@ -311,6 +313,7 @@ export default function ApplyJobPage({ params }: { params: Promise<{ id: string 
               <input
                 type="file"
                 accept=".pdf,.doc,.docx"
+                required
                 onChange={(e) => {
                   if (e.target.files && e.target.files[0]) {
                     setResumeFile(e.target.files[0]);
@@ -319,6 +322,7 @@ export default function ApplyJobPage({ params }: { params: Promise<{ id: string 
                 className="search-input"
                 style={{ borderRadius: "12px", padding: "10px" }}
               />
+
               <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px" }}>
                 Accepted formats: PDF, DOC, DOCX (Max 10MB)
               </p>

@@ -24,6 +24,7 @@ export default function CandidatesPage() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [candidates, setCandidates] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedCandidate, setSelectedCandidate] = useState<any | null>(null);
 
   useEffect(() => {
     fetchCandidates();
@@ -52,21 +53,22 @@ export default function CandidatesPage() {
 
               const skillNames = Array.isArray(app.candidate.skills)
                 ? app.candidate.skills.map((s: any) => (typeof s === "string" ? s : s.skillName))
-                : ["Engineering", "Product"];
+                : ["Engineering", "Software Development", "React", "Node.js"];
 
               loaded.push({
                 id: app.candidate._id || app.candidate.id,
                 name: cName,
-                email: app.candidate.email || "",
-                role: app.job?.title || "Candidate",
+                email: app.candidate.email || "candidate@jobify.com",
+                role: app.job?.title || "Senior Developer",
                 experience: app.candidate.experience?.[0]?.duration || "2+ yrs",
-                location: app.candidate.location || app.job?.location || "Remote",
-                skills: skillNames.length > 0 ? skillNames : ["Software Development"],
+                location: app.candidate.location || app.job?.location || "Delhi, India",
+                skills: skillNames.length > 0 ? skillNames : ["Software Development", "TypeScript", "Problem Solving"],
                 status: "Available",
                 match: 92,
                 avatar: initials,
-                salary: app.job?.salary ? `$${Number(app.job.salary).toLocaleString()}` : "$120k",
+                salary: app.job?.salary ? `$${Number(app.job.salary).toLocaleString()}` : "$120,000/yr",
                 resumeUrl: app.resumeUrl || app.candidate.resume || "",
+                coverLetter: app.coverLetter || "Experienced software engineer dedicated to building scalable web applications.",
               });
             }
           });
@@ -85,6 +87,66 @@ export default function CandidatesPage() {
       setIsLoading(false);
     }
   };
+
+  const getCleanUrl = (rawUrl: string) => {
+    if (!rawUrl || typeof rawUrl !== "string") return "";
+    let cleanPath = rawUrl.replace(/[\r\n\t]/g, "").trim().replace(/\\/g, "/");
+    if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://")) return cleanPath;
+    if (cleanPath.includes("uploads/")) {
+      cleanPath = "uploads/" + cleanPath.split("uploads/")[1];
+    } else {
+      cleanPath = cleanPath.replace(/^public\//, "").replace(/^\//, "");
+    }
+    return `http://localhost:5000/${cleanPath}`;
+  };
+
+
+  const handleViewResume = (candidate: any) => {
+    const rawUrl = candidate.resumeUrl;
+    const candidateName = candidate.name || "Candidate";
+
+    if (rawUrl && typeof rawUrl === "string" && rawUrl.length > 3) {
+      const fullUrl = getCleanUrl(rawUrl);
+      window.open(fullUrl, "_blank");
+      return;
+    }
+
+    alert(`No original resume file uploaded for ${candidateName}.`);
+  };
+
+  const handleDownloadResume = async (candidate: any) => {
+    const rawUrl = candidate.resumeUrl;
+    const candidateName = candidate.name || "Candidate";
+
+    if (rawUrl && typeof rawUrl === "string" && rawUrl.length > 3) {
+      const fullUrl = getCleanUrl(rawUrl);
+
+      try {
+        const response = await fetch(fullUrl);
+        if (response.ok) {
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = blobUrl;
+          const ext = rawUrl.endsWith(".docx") ? ".docx" : ".pdf";
+          a.download = `${candidateName.replace(/\s+/g, "_")}_Original_Resume${ext}`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+      } catch (err) {
+        console.warn("Direct blob download failed, opening tab URL:", err);
+      }
+
+      window.open(fullUrl, "_blank");
+      return;
+    }
+
+    alert(`No original uploaded file found for ${candidateName}.`);
+  };
+
 
   const filtered = candidates.filter((c) => {
     const matchSearch =
@@ -163,7 +225,6 @@ export default function CandidatesPage() {
           }}
         >
           {filtered.map((c, i) => {
-            const sc = statusColors[c.status] || statusColors.Available;
             return (
               <div
                 key={c.id}
@@ -264,40 +325,25 @@ export default function CandidatesPage() {
                     paddingTop: "14px",
                     borderTop: "1px solid var(--border)",
                     display: "flex",
-                    gap: "8px",
                   }}
                 >
                   <a
-                    href={`mailto:${c.email}?subject=Job Opportunity at ${c.role}`}
+                    href={`mailto:${c.email}?subject=Job Opportunity for ${c.role}`}
                     className="btn-primary"
                     style={{
-                      flex: 1,
-                      padding: "8px 12px",
-                      fontSize: "0.8rem",
-                      borderRadius: "8px",
+                      width: "100%",
+                      padding: "10px 14px",
+                      fontSize: "0.85rem",
+                      borderRadius: "10px",
                       textAlign: "center",
                       textDecoration: "none",
+                      fontWeight: 700,
                     }}
                   >
                     Contact Candidate ✉️
                   </a>
-                  {c.resumeUrl && (
-                    <a
-                      href={c.resumeUrl.startsWith("http") ? c.resumeUrl : `http://localhost:5000/${c.resumeUrl}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn-secondary"
-                      style={{
-                        padding: "8px 12px",
-                        fontSize: "0.8rem",
-                        borderRadius: "8px",
-                        textDecoration: "none",
-                      }}
-                    >
-                      Resume 📄
-                    </a>
-                  )}
                 </div>
+
               </div>
             );
           })}

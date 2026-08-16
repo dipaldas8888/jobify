@@ -229,9 +229,10 @@ function LoginForm() {
                 <label style={{ fontSize: "0.825rem", fontWeight: 600, color: "var(--text-primary)" }}>
                   Password
                 </label>
-                <Link href="#" style={{ fontSize: "0.775rem", color: "#4f46e5", textDecoration: "none", fontWeight: 600 }}>
+                <Link href="/auth/forgot-password" style={{ fontSize: "0.775rem", color: "#4f46e5", textDecoration: "none", fontWeight: 600 }}>
                   Forgot password?
                 </Link>
+
               </div>
               <div style={{ position: "relative" }}>
                 <input

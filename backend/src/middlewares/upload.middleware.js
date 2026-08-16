@@ -1,19 +1,35 @@
 import multer from "multer";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
-import cloudinary from "../config/cloudinary.js";
+import path from "path";
+import fs from "fs";
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: "job-portal/resumes",
-    // 'auto' or 'raw' is often required for non-image files like PDFs in Cloudinary
-    resource_type: "auto",
-    allowed_formats: ["pdf"],
-    public_id: (req, file) => `${req.user._id}-${Date.now()}`,
+// Ensure local uploads directory exists
+const uploadDir = path.resolve("uploads/resumes");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const diskStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || ".pdf";
+    const userId = req.user ? (req.user._id || req.user.id) : "user";
+    const uniqueName = `resume-${userId}-${Date.now()}${ext}`;
+    cb(null, uniqueName);
   },
 });
 
 export const uploadResume = multer({
-  storage,
-  limits: { fileSize: 5000000 }, // 5MB limit
+  storage: diskStorage,
+  limits: { fileSize: 10000000 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowed = [".pdf", ".doc", ".docx"];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext) || file.mimetype === "application/pdf") {
+      cb(null, true);
+    } else {
+      cb(new Error("Only PDF, DOC, and DOCX files are allowed"));
+    }
+  },
 });

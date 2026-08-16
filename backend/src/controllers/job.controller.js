@@ -237,12 +237,20 @@ export const applyForJob = async (req, res) => {
       return res.status(400).json({ success: false, message: "This job is not accepting applications" });
     }
 
+    let finalResumePath = req.file ? req.file.path : (resumeUrl || req.user.resume || "uploads/resumes/default_resume.pdf");
+    finalResumePath = finalResumePath.replace(/\\/g, "/");
+    if (finalResumePath.includes("uploads/")) {
+      finalResumePath = "uploads/" + finalResumePath.split("uploads/")[1];
+    }
+
+
     const application = await Application.create({
       job: jobId,
       candidate: req.user._id,
-      resumeUrl: resumeUrl || req.user.resume,
+      resumeUrl: finalResumePath,
       coverLetter,
     });
+
 
     if (!application.resumeUrl) {
       await Application.findByIdAndDelete(application._id);

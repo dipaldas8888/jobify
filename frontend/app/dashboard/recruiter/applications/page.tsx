@@ -78,7 +78,67 @@ export default function ApplicationsPage() {
     }
   };
 
+  const getCleanUrl = (rawUrl: string) => {
+    if (!rawUrl || typeof rawUrl !== "string") return "";
+    let cleanPath = rawUrl.replace(/[\r\n\t]/g, "").trim().replace(/\\/g, "/");
+    if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://")) return cleanPath;
+    if (cleanPath.includes("uploads/")) {
+      cleanPath = "uploads/" + cleanPath.split("uploads/")[1];
+    } else {
+      cleanPath = cleanPath.replace(/^public\//, "").replace(/^\//, "");
+    }
+    return `http://localhost:5000/${cleanPath}`;
+  };
+
+
+  const handleViewResume = (app: any) => {
+    const rawUrl = app.resumeUrl || app.candidate?.resume || app.candidate?.resumeUrl;
+    if (rawUrl && typeof rawUrl === "string" && rawUrl.length > 3) {
+      const fullUrl = getCleanUrl(rawUrl);
+      window.open(fullUrl, "_blank");
+      return;
+    }
+    alert(`No original uploaded resume file found for ${app.name || "Candidate"}.`);
+  };
+
+  const handleDownloadResume = async (app: any) => {
+    const candidateName = app.name || "Candidate";
+    const rawUrl = app.resumeUrl || app.candidate?.resume || app.candidate?.resumeUrl;
+
+    if (rawUrl && typeof rawUrl === "string" && rawUrl.length > 3) {
+      const fullUrl = getCleanUrl(rawUrl);
+
+      try {
+        const response = await fetch(fullUrl);
+        if (response.ok) {
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = blobUrl;
+          const ext = rawUrl.endsWith(".docx") ? ".docx" : ".pdf";
+          a.download = `${candidateName.replace(/\s+/g, "_")}_Original_Resume${ext}`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+      } catch (err) {
+        console.warn("Direct blob download failed, opening tab URL:", err);
+      }
+
+      window.open(fullUrl, "_blank");
+      return;
+    }
+
+    alert(`No original uploaded file found for ${candidateName}.`);
+  };
+
+
+
+
   const handleStageChange = async (appId: string, newStage: string) => {
+
     setUpdatingId(appId);
     try {
       const res = await jobsApi.updateApplicationStatus(appId, newStage);
@@ -428,22 +488,45 @@ export default function ApplicationsPage() {
                 </div>
               </div>
 
-              {activeModalApp.resumeUrl ? (
-                <div>
-                  <span style={{ color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Submitted Resume:</span>
+              <div>
+                <span style={{ color: "var(--text-muted)", display: "block", marginBottom: "8px" }}>Candidate Resume Document:</span>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                   <a
-                    href={activeModalApp.resumeUrl.startsWith("http") ? activeModalApp.resumeUrl : `http://localhost:5000/${activeModalApp.resumeUrl}`}
+                    href={getCleanUrl(activeModalApp.resumeUrl || activeModalApp.candidate?.resume) || "#"}
                     target="_blank"
-                    rel="noreferrer"
-                    className="btn-primary"
-                    style={{ display: "inline-block", padding: "8px 16px", fontSize: "0.85rem", textDecoration: "none", borderRadius: "8px" }}
+                    rel="noopener noreferrer"
+                    className="btn-secondary"
+                    onClick={(e) => {
+                      if (!activeModalApp.resumeUrl && !activeModalApp.candidate?.resume) {
+                        e.preventDefault();
+                        alert(`No original uploaded resume file found for ${activeModalApp.name}.`);
+                      }
+                    }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "9px 16px", fontSize: "0.85rem", borderRadius: "8px", textDecoration: "none", fontWeight: 600 }}
                   >
-                    📥 Download Candidate Resume PDF
+                    👁️ View Resume
+                  </a>
+                  <a
+                    href={getCleanUrl(activeModalApp.resumeUrl || activeModalApp.candidate?.resume) || "#"}
+                    download={`${activeModalApp.name.replace(/\s+/g, "_")}_Resume.pdf`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-primary"
+                    onClick={(e) => {
+                      if (!activeModalApp.resumeUrl && !activeModalApp.candidate?.resume) {
+                        e.preventDefault();
+                        alert(`No original uploaded resume file found for ${activeModalApp.name}.`);
+                      }
+                    }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "9px 16px", fontSize: "0.85rem", borderRadius: "8px", textDecoration: "none", fontWeight: 600 }}
+                  >
+                    📥 Download Resume
                   </a>
                 </div>
-              ) : (
-                <div style={{ color: "var(--text-muted)" }}>No resume PDF uploaded.</div>
-              )}
+              </div>
+
+
+
             </div>
 
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "24px" }}>

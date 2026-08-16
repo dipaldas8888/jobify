@@ -51,8 +51,14 @@ router.post(
   uploadResume.single("resume"),
   (req, res, next) => {
     if (req.file) {
-      req.body.resumeUrl = req.file.path;
+      let relativePath = req.file.path.replace(/\\/g, "/");
+      if (relativePath.includes("uploads/")) {
+        relativePath = "uploads/" + relativePath.split("uploads/")[1];
+      }
+      req.body.resumeUrl = relativePath;
     }
+
+
     next();
   },
   applyForJob

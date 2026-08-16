@@ -5,7 +5,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { COMPANIES_DATA, type Company } from "../page";
+import { COMPANIES_DATA, type Company } from "@/data/companiesData";
+
+
 import { jobsApi } from "@/lib/api";
 import { mockJobs, type Job } from "@/data/mockJobs";
 

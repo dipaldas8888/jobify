@@ -207,8 +207,12 @@ export const uploadResumePdf = async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-    const resumeUrl = req.file.path;
+    let resumeUrl = req.file.path.replace(/\\/g, "/");
+    if (resumeUrl.includes("uploads/")) {
+      resumeUrl = "uploads/" + resumeUrl.split("uploads/")[1];
+    }
     const versionName = `Resume v${user.resumeVersionHistory.length + 1}`;
+
 
     user.resume = resumeUrl;
     user.resumeVersionHistory.push({ url: resumeUrl, versionName });

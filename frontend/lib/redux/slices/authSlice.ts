@@ -17,12 +17,32 @@ export interface AuthState {
   isLoading: boolean;
 }
 
-const initialState: AuthState = {
-  user: null,
-  token: typeof window !== "undefined" ? localStorage.getItem("jobify_token") : null,
-  isAuthenticated: false,
-  isLoading: true,
+const getInitialAuthState = (): AuthState => {
+  if (typeof window === "undefined") {
+    return { user: null, token: null, isAuthenticated: false, isLoading: true };
+  }
+
+  const token = localStorage.getItem("jobify_token") || localStorage.getItem("token");
+  const userRaw = localStorage.getItem("jobify_user");
+  let user: User | null = null;
+
+  if (userRaw) {
+    try {
+      user = JSON.parse(userRaw);
+    } catch (e) {
+      console.error("Failed to parse cached user:", e);
+    }
+  }
+
+  return {
+    token: token || null,
+    user: user || null,
+    isAuthenticated: Boolean(token && user),
+    isLoading: Boolean(token && !user),
+  };
 };
+
+const initialState: AuthState = getInitialAuthState();
 
 export const authSlice = createSlice({
   name: "auth",
@@ -38,10 +58,15 @@ export const authSlice = createSlice({
       state.isLoading = false;
       if (typeof window !== "undefined") {
         localStorage.setItem("jobify_token", action.payload.token);
+        localStorage.setItem("token", action.payload.token);
+        localStorage.setItem("jobify_user", JSON.stringify(action.payload.user));
       }
     },
     updateUser: (state, action: PayloadAction<User>) => {
       state.user = action.payload;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("jobify_user", JSON.stringify(action.payload));
+      }
     },
     logout: (state) => {
       state.user = null;
@@ -50,6 +75,8 @@ export const authSlice = createSlice({
       state.isLoading = false;
       if (typeof window !== "undefined") {
         localStorage.removeItem("jobify_token");
+        localStorage.removeItem("token");
+        localStorage.removeItem("jobify_user");
       }
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
