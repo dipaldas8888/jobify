@@ -87,8 +87,10 @@ export default function ApplicationsPage() {
     } else {
       cleanPath = cleanPath.replace(/^public\//, "").replace(/^\//, "");
     }
-    return `http://localhost:5000/${cleanPath}`;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "https://jobify-d6na.onrender.com";
+    return `${baseUrl}/${cleanPath}`;
   };
+
 
 
   const handleViewResume = (app: any) => {
@@ -387,8 +389,9 @@ export default function ApplicationsPage() {
                   </button>
                   {app.resumeUrl && (
                     <a
-                      href={app.resumeUrl.startsWith("http") ? app.resumeUrl : `http://localhost:5000/${app.resumeUrl}`}
+                      href={getCleanUrl(app.resumeUrl)}
                       target="_blank"
+
                       rel="noreferrer"
                       style={{
                         padding: "5px 8px",

@@ -140,7 +140,8 @@ export default function ProfilePage() {
     );
   }
 
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:5000";
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "https://jobify-d6na.onrender.com";
+
   const resumeUrl = profileData?.resume
     ? profileData.resume.startsWith("http")
       ? profileData.resume

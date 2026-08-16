@@ -97,8 +97,10 @@ export default function CandidatesPage() {
     } else {
       cleanPath = cleanPath.replace(/^public\//, "").replace(/^\//, "");
     }
-    return `http://localhost:5000/${cleanPath}`;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "https://jobify-d6na.onrender.com";
+    return `${baseUrl}/${cleanPath}`;
   };
+
 
 
   const handleViewResume = (candidate: any) => {
