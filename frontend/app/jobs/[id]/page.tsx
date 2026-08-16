@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
-import { jobsApi } from "@/lib/api";
+import { jobsApi, authApi, apiRequest } from "@/lib/api";
 import { mockJobs, type Job } from "@/data/mockJobs";
 import { useAppSelector } from "@/lib/redux/store";
+
 
 // Helper component to format recruiter description into structured, beautiful sections
 function FormattedDescription({ text }: { text: string }) {
@@ -146,7 +147,49 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     fetchJobDetail();
   }, [id]);
 
+  useEffect(() => {
+    if (user) {
+      checkIfSaved();
+    }
+  }, [user, id]);
+
+  const checkIfSaved = async () => {
+    try {
+      const res = await authApi.getProfile();
+      if (res.success && res.data && Array.isArray(res.data.savedJobs)) {
+        const isFound = res.data.savedJobs.some((j: any) => {
+          const savedId = typeof j === "object" ? (j._id || j.id) : j;
+          return String(savedId) === String(id);
+        });
+        setIsSaved(isFound);
+      }
+    } catch (err) {
+      console.log("Error checking saved status:", err);
+    }
+  };
+
+  const handleToggleSave = async () => {
+    if (!user) {
+      alert("Please sign in to your account first to save jobs.");
+      return;
+    }
+
+    const nextState = !isSaved;
+    setIsSaved(nextState);
+
+    try {
+      if (nextState) {
+        await apiRequest(`/users/jobs/${id}/save`, { method: "POST" });
+      } else {
+        await apiRequest(`/users/jobs/${id}/save`, { method: "DELETE" });
+      }
+    } catch (err) {
+      console.error("Error toggling save status:", err);
+    }
+  };
+
   const fetchJobDetail = async () => {
+
     setIsLoading(true);
     setError(null);
 
@@ -351,7 +394,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
                 <button
                   type="button"
-                  onClick={() => setIsSaved(!isSaved)}
+                  onClick={handleToggleSave}
+
                   style={{
                     padding: "13px 20px",
                     borderRadius: "14px",

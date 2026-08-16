@@ -143,9 +143,9 @@ export default function Navbar() {
               {!mounted ? null : isAuthenticated && user ? (
 
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  {/* Dashboard Button (Matching Image 1) */}
+                  {/* Top Nav Action Button */}
                   <Link
-                    href={getDashboardHref()}
+                    href={user.role === "recruiter" ? "/dashboard/recruiter" : user.role === "admin" ? "/dashboard/admin" : "/profile"}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
@@ -170,11 +170,15 @@ export default function Navbar() {
                       (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
                     }}
                   >
-                    <span style={{ fontSize: "1rem" }}>📊</span>
-                    <span>Dashboard</span>
+                    <span style={{ fontSize: "1rem" }}>
+                      {user.role === "recruiter" ? "🏢" : user.role === "admin" ? "⚡" : "👤"}
+                    </span>
+                    <span>
+                      {user.role === "recruiter" ? "Recruiter Portal" : user.role === "admin" ? "Admin Panel" : "My Profile"}
+                    </span>
                   </Link>
 
-                  {/* Avatar Button & Profile Dropdown (Matching Image 1: [D] Dipal) */}
+                  {/* Avatar Button & Profile Dropdown */}
                   <div style={{ position: "relative" }} ref={profileRef}>
                     <button
                       type="button"
@@ -255,8 +259,51 @@ export default function Navbar() {
                           </span>
                         </div>
 
+                        {/* Recruiter / Admin links if applicable */}
+                        {user.role === "recruiter" && (
+                          <Link
+                            href="/dashboard/recruiter"
+                            onClick={() => setProfileDropdownOpen(false)}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "9px 12px",
+                              borderRadius: "10px",
+                              fontSize: "0.85rem",
+                              color: "var(--text-primary)",
+                              textDecoration: "none",
+                              fontWeight: 500,
+                            }}
+                            className="dropdown-item-hover"
+                          >
+                            <span>🏢</span> Recruiter Portal
+                          </Link>
+                        )}
+
+                        {user.role === "admin" && (
+                          <Link
+                            href="/dashboard/admin"
+                            onClick={() => setProfileDropdownOpen(false)}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "9px 12px",
+                              borderRadius: "10px",
+                              fontSize: "0.85rem",
+                              color: "var(--text-primary)",
+                              textDecoration: "none",
+                              fontWeight: 500,
+                            }}
+                            className="dropdown-item-hover"
+                          >
+                            <span>⚡</span> Admin Panel
+                          </Link>
+                        )}
+
                         <Link
-                          href={getDashboardHref()}
+                          href="/profile"
                           onClick={() => setProfileDropdownOpen(false)}
                           style={{
                             display: "flex",
@@ -271,11 +318,11 @@ export default function Navbar() {
                           }}
                           className="dropdown-item-hover"
                         >
-                          <span>📊</span> Dashboard
+                          <span>👤</span> My Profile
                         </Link>
 
                         <Link
-                          href="/jobs"
+                          href="/saved-jobs"
                           onClick={() => setProfileDropdownOpen(false)}
                           style={{
                             display: "flex",
@@ -290,7 +337,7 @@ export default function Navbar() {
                           }}
                           className="dropdown-item-hover"
                         >
-                          <span>💼</span> Browse Jobs
+                          <span>🔖</span> Saved Jobs
                         </Link>
 
                         <div style={{ borderTop: "1px solid var(--border)", marginTop: "4px", paddingTop: "4px" }}>
@@ -320,6 +367,7 @@ export default function Navbar() {
                     )}
                   </div>
                 </div>
+
               ) : (
                 /* NOT LOGGED IN STATE - Internshala Style Dropdown (Matching 3rd Screenshot / Image 2) */
                 <div style={{ position: "relative" }} ref={authDropdownRef}>

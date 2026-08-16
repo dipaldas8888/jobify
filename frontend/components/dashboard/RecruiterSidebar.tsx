@@ -12,7 +12,9 @@ const navItems = [
   { href: "/dashboard/recruiter/applications", label: "Applications", icon: "📋" },
   { href: "/dashboard/recruiter/candidates", label: "Candidates", icon: "👥" },
   { href: "/dashboard/recruiter/analytics", label: "Analytics", icon: "📈" },
+  { href: "/dashboard/recruiter/company-profile", label: "Company Profile", icon: "🏢" },
 ];
+
 
 const bottomItems = [
   { href: "/dashboard/recruiter/settings", label: "Settings", icon: "⚙️" },

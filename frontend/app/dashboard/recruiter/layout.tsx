@@ -9,8 +9,10 @@ const pageTitles: Record<string, string> = {
   "/dashboard/recruiter/applications": "Applications",
   "/dashboard/recruiter/candidates": "Candidates",
   "/dashboard/recruiter/analytics": "Analytics",
+  "/dashboard/recruiter/company-profile": "Company Profile",
   "/dashboard/recruiter/settings": "Settings",
 };
+
 
 function DashboardHeader() {
   const pathname = usePathname();
@@ -74,14 +76,7 @@ function DashboardHeader() {
           />
         </button>
 
-        {/* Post Job CTA */}
-        <button
-          className="btn-primary"
-          style={{ padding: "8px 18px", fontSize: "0.85rem", borderRadius: "10px" }}
-          type="button"
-        >
-          + Post Job
-        </button>
+
 
         {/* Avatar */}
         <div

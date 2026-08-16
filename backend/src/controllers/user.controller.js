@@ -311,15 +311,18 @@ export const generateResume = async (req, res) => {
 
 export const saveJob = async (req, res) => {
   try {
-    const job = await Job.findById(req.params.jobId);
-    if (!job) return res.status(404).json({ success: false, message: "Job not found" });
-
+    const { jobId } = req.params;
     const user = await User.findById(req.user._id);
-    if (user.savedJobs.includes(job._id)) return res.status(400).json({ success: false, message: "Job already saved" });
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-    user.savedJobs.push(job._id);
+    const alreadySaved = user.savedJobs.some((id) => id && id.toString() === jobId.toString());
+    if (alreadySaved) {
+      return res.json({ success: true, message: "Job already saved", savedJobs: user.savedJobs });
+    }
+
+    user.savedJobs.push(jobId);
     await user.save();
-    res.json({ success: true, message: "Job saved", savedJobs: user.savedJobs });
+    res.json({ success: true, message: "Job saved successfully", savedJobs: user.savedJobs });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -327,14 +330,18 @@ export const saveJob = async (req, res) => {
 
 export const unsaveJob = async (req, res) => {
   try {
+    const { jobId } = req.params;
     const user = await User.findById(req.user._id);
-    user.savedJobs = user.savedJobs.filter((id) => id.toString() !== req.params.jobId);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    user.savedJobs = user.savedJobs.filter((id) => id && id.toString() !== jobId.toString());
     await user.save();
-    res.json({ success: true, message: "Job unsaved", savedJobs: user.savedJobs });
+    res.json({ success: true, message: "Job unsaved successfully", savedJobs: user.savedJobs });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // ==========================================
 // 5. Dashboards
@@ -515,3 +522,118 @@ export const markAllNotificationsRead = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// ==========================================
+// 6. Recruiter Company Profile Management
+// ==========================================
+
+export const getCompanyProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    const companyData = {
+      companyName: user.companyName || "",
+      companyTagline: user.companyTagline || "",
+      companyLogo: user.companyLogo || "",
+      companyWebsite: user.companyWebsite || "",
+      companyLinkedIn: user.companyLinkedIn || "",
+      companyTwitter: user.companyTwitter || "",
+      industry: user.industry || "",
+      companySize: user.companySize || "",
+      headquarters: user.headquarters || "",
+      foundedYear: user.foundedYear || "",
+      companyDescription: user.companyDescription || "",
+      companyCulture: user.companyCulture || "",
+      perksAndBenefits: user.perksAndBenefits || [],
+    };
+
+    res.json({ success: true, data: companyData });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const updateCompanyProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    const {
+      companyName,
+      companyTagline,
+      companyLogo,
+      companyWebsite,
+      companyLinkedIn,
+      companyTwitter,
+      industry,
+      companySize,
+      headquarters,
+      foundedYear,
+      companyDescription,
+      companyCulture,
+      perksAndBenefits,
+    } = req.body;
+
+    if (companyName !== undefined) user.companyName = companyName;
+    if (companyTagline !== undefined) user.companyTagline = companyTagline;
+    if (companyLogo !== undefined) user.companyLogo = companyLogo;
+    if (companyWebsite !== undefined) user.companyWebsite = companyWebsite;
+    if (companyLinkedIn !== undefined) user.companyLinkedIn = companyLinkedIn;
+    if (companyTwitter !== undefined) user.companyTwitter = companyTwitter;
+    if (industry !== undefined) user.industry = industry;
+    if (companySize !== undefined) user.companySize = companySize;
+    if (headquarters !== undefined) user.headquarters = headquarters;
+    if (foundedYear !== undefined) user.foundedYear = foundedYear;
+    if (companyDescription !== undefined) user.companyDescription = companyDescription;
+    if (companyCulture !== undefined) user.companyCulture = companyCulture;
+    if (Array.isArray(perksAndBenefits)) user.perksAndBenefits = perksAndBenefits;
+
+    await user.save();
+
+    // Sync/Upsert with Metadata model for global company listings
+    if (user.companyName) {
+      try {
+        await Metadata.findOneAndUpdate(
+          { type: "Company", createdBy: user._id },
+          {
+            type: "Company",
+            name: user.companyName,
+            description: user.companyDescription || user.companyTagline,
+            website: user.companyWebsite,
+            logo: user.companyLogo,
+            location: user.headquarters,
+            isApproved: true,
+            createdBy: user._id,
+          },
+          { upsert: true, new: true }
+        );
+      } catch (err) {
+        console.error("Error upserting metadata company:", err);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: "Company profile updated successfully",
+      data: {
+        companyName: user.companyName,
+        companyTagline: user.companyTagline,
+        companyLogo: user.companyLogo,
+        companyWebsite: user.companyWebsite,
+        companyLinkedIn: user.companyLinkedIn,
+        companyTwitter: user.companyTwitter,
+        industry: user.industry,
+        companySize: user.companySize,
+        headquarters: user.headquarters,
+        foundedYear: user.foundedYear,
+        companyDescription: user.companyDescription,
+        companyCulture: user.companyCulture,
+        perksAndBenefits: user.perksAndBenefits,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+

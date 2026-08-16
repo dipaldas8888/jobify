@@ -156,12 +156,16 @@ function JobCard({ job, onApply }: { job: Job; onApply?: (job: Job) => void }) {
 
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); onApply ? onApply(job) : undefined; }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/jobs/${job.id}/apply`);
+                }}
                 className="btn-primary"
                 style={{ padding: "6px 14px", fontSize: "0.8rem", borderRadius: "8px" }}
               >
                 Apply Now
               </button>
+
             </div>
           </div>
         </div>
@@ -220,7 +224,9 @@ function JobCardSkeleton() {
 }
 
 export default function JobsPage() {
+  const router = useRouter();
   const { user } = useAppSelector((state) => state.auth);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<JobType[]>([]);
@@ -332,10 +338,9 @@ export default function JobsPage() {
     searchQuery || locationQuery || selectedTypes.length > 0 || selectedExp;
 
   const handleApplyClick = (job: Job) => {
-    setApplyingJob(job);
-    setCoverLetter("");
-    setAppMessage(null);
+    router.push(`/jobs/${job.id}/apply`);
   };
+
 
   const handleApplicationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

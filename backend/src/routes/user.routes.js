@@ -21,15 +21,21 @@ import {
   getMyNotifications,
   markNotificationRead,
   markAllNotificationsRead,
+  getCompanyProfile,
+  updateCompanyProfile,
 } from "../controllers/user.controller.js";
 
 const router = express.Router();
 
 router.use(protect);
 
+// Company Profile
+router.route("/company-profile").get(authorize("recruiter", "admin"), getCompanyProfile).put(authorize("recruiter", "admin"), updateCompanyProfile);
+
 // Dashboards
 router.get("/dashboard/candidate", authorize("candidate"), getCandidateDashboard);
 router.get("/dashboard/recruiter", authorize("recruiter"), getRecruiterDashboard);
+
 
 // Notifications
 router.get("/notifications", getMyNotifications);

@@ -92,8 +92,21 @@ const userSchema = new mongoose.Schema(
     savedJobs: [{ type: mongoose.Schema.Types.ObjectId, ref: "Job" }],
 
     // Recruiter Specific fields
-    companyName: { type: String },
+    companyName: { type: String, default: "" },
+    companyTagline: { type: String, default: "" },
+    companyLogo: { type: String, default: "" },
+    companyWebsite: { type: String, default: "" },
+    companyLinkedIn: { type: String, default: "" },
+    companyTwitter: { type: String, default: "" },
+    industry: { type: String, default: "" },
+    companySize: { type: String, default: "" },
+    headquarters: { type: String, default: "" },
+    foundedYear: { type: String, default: "" },
+    companyDescription: { type: String, default: "" },
+    companyCulture: { type: String, default: "" },
+    perksAndBenefits: [{ type: String }],
   },
+
   { timestamps: true },
 );
 
