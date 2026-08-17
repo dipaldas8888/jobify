@@ -9,9 +9,10 @@ import {
   getMyApplications,
   getJobApplicants,
   updateApplicationStatus,
+  bulkCreateJobs,
 } from "../controllers/job.controller.js";
 import { protect, authorize } from "../middlewares/auth.middleware.js";
-import { uploadResume } from "../middlewares/upload.middleware.js";
+import { uploadResume, uploadCsv } from "../middlewares/upload.middleware.js";
 
 const router = express.Router();
 
@@ -36,6 +37,15 @@ router.put(
 
 // Job Posting & Operations
 router.post("/", protect, authorize("recruiter", "admin"), createJob);
+
+// Bulk Import via CSV
+router.post(
+  "/bulk-import",
+  protect,
+  authorize("recruiter", "admin"),
+  uploadCsv.single("csvFile"),
+  bulkCreateJobs
+);
 
 router
   .route("/:id")

@@ -33,3 +33,17 @@ export const uploadResume = multer({
     }
   },
 });
+
+// CSV upload — stored in memory (parsed immediately, not saved to disk)
+export const uploadCsv = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext === ".csv" || file.mimetype === "text/csv" || file.mimetype === "application/vnd.ms-excel") {
+      cb(null, true);
+    } else {
+      cb(new Error("Only CSV files are allowed for bulk import"));
+    }
+  },
+});

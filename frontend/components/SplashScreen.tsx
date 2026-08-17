@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 
 interface SplashScreenProps {
-  onComplete: () => void;
+  onComplete?: () => void;
 }
 
 export default function SplashScreen({ onComplete }: SplashScreenProps) {
@@ -32,7 +32,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
 
     // Phase 4: fully hidden after fade (300ms transition)
     const doneTimer = setTimeout(() => {
-      onCompleteRef.current();
+      if (typeof onCompleteRef.current === "function") onCompleteRef.current();
     }, 2600);
 
     return () => {
