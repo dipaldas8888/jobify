@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAppSelector } from "@/lib/redux/store";
 import { dashboardApi, jobsApi } from "@/lib/api";
+import CsvImportModal from "@/components/dashboard/CsvImportModal";
 
 const initialStats = [
   { label: "Jobs Posted", value: "0", change: "+0", trend: "up", icon: "💼", color: "#4f46e5" },
@@ -75,6 +76,7 @@ export default function RecruiterOverviewPage() {
 
   // Post Job Modal State
   const [showPostModal, setShowPostModal] = useState(false);
+  const [showCsvModal, setShowCsvModal] = useState(false);
   const [jobTitle, setJobTitle] = useState("");
   const [companyName, setCompanyName] = useState(user?.companyName || "");
   const [jobLocation, setJobLocation] = useState("");
@@ -223,7 +225,38 @@ export default function RecruiterOverviewPage() {
         >
           + Post New Job
         </button>
+
+        <button
+          type="button"
+          onClick={() => setShowCsvModal(true)}
+          style={{
+            padding: "10px 18px",
+            fontSize: "0.875rem",
+            fontWeight: 700,
+            borderRadius: "12px",
+            background: "rgba(99,102,241,0.1)",
+            border: "1px solid rgba(99,102,241,0.35)",
+            color: "#6366f1",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+        >
+          📂 Import CSV
+        </button>
       </div>
+
+      {/* CSV Import Modal */}
+      {showCsvModal && (
+        <CsvImportModal
+          onClose={() => setShowCsvModal(false)}
+          onSuccess={() => {
+            setShowCsvModal(false);
+            window.location.reload();
+          }}
+        />
+      )}
 
       {/* Stats Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>

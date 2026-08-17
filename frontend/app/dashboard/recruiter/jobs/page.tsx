@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { jobsApi, dashboardApi } from "@/lib/api";
 import { useAppSelector } from "@/lib/redux/store";
+import CsvImportModal from "@/components/dashboard/CsvImportModal";
 
 interface JobItem {
   id: string;
@@ -49,6 +50,9 @@ export default function RecruiterJobsPage() {
   const [skills, setSkills] = useState("React, Node.js, TypeScript");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalMsg, setModalMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // CSV Import Modal
+  const [showCsvModal, setShowCsvModal] = useState(false);
 
   // Edit Modal State
   const [showEditModal, setShowEditModal] = useState(false);
@@ -438,8 +442,39 @@ export default function RecruiterJobsPage() {
           >
             + Post New Job
           </button>
+
+          <button
+            type="button"
+            onClick={() => setShowCsvModal(true)}
+            style={{
+              padding: "10px 22px",
+              borderRadius: "12px",
+              fontSize: "0.9rem",
+              fontWeight: 700,
+              whiteSpace: "nowrap",
+              background: "rgba(99,102,241,0.1)",
+              border: "1px solid rgba(99,102,241,0.35)",
+              color: "#6366f1",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            📂 Import CSV
+          </button>
         </div>
       </div>
+
+      {/* CSV Import Modal */}
+      {showCsvModal && (
+        <CsvImportModal
+          onClose={() => setShowCsvModal(false)}
+          onSuccess={() => {
+            fetchRecruiterJobs();
+          }}
+        />
+      )}
 
       {/* Main Table */}
       <div style={{ background: "#ffffff", border: "1px solid var(--border)", borderRadius: "20px", overflow: "hidden", boxShadow: "var(--shadow-card)" }}>

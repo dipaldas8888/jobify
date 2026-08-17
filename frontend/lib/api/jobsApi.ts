@@ -36,4 +36,10 @@ export const jobsApi = {
       method: "PUT",
       body: JSON.stringify({ status }),
     }),
+
+  bulkImportJobs: (formData: FormData) =>
+    apiRequest("/jobs/bulk-import", {
+      method: "POST",
+      body: formData,
+    }),
 };
