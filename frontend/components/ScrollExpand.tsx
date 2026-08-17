@@ -171,7 +171,7 @@ export default function ScrollExpand({
                   Explore Jobs →
                 </Link>
                 <Link
-                  href="/dashboard/recruiter"
+                  href="/about"
                   style={{
                     padding: "12px 24px",
                     borderRadius: "12px",
@@ -183,8 +183,9 @@ export default function ScrollExpand({
                     backdropFilter: "blur(8px)",
                   }}
                 >
-                  Employer Portal
+                  About Us →
                 </Link>
+
               </div>
             </div>
 

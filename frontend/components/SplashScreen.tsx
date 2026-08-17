@@ -1,104 +1,166 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
-export default function SplashScreen() {
-  const [isVisible, setIsVisible] = useState(true);
-  const [isFadingOut, setIsFadingOut] = useState(false);
+interface SplashScreenProps {
+  onComplete: () => void;
+}
+
+export default function SplashScreen({ onComplete }: SplashScreenProps) {
+  const [phase, setPhase] = useState<"enter" | "visible" | "fadeout">("enter");
+  const [progress, setProgress] = useState(0);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
-    // Check if splash was already shown in this session
-    const alreadyShown = sessionStorage.getItem("jobify_splash_shown");
-    if (alreadyShown) {
-      setIsVisible(false);
-      return;
-    }
+    // Phase 1: enter animation (0 → visible)
+    const enterTimer = setTimeout(() => setPhase("visible"), 50);
 
-    // Fast fade out after 350ms
-    const fadeTimer = setTimeout(() => {
-      setIsFadingOut(true);
-    }, 350);
+    // Phase 2: animate progress bar
+    let prog = 0;
+    const interval = setInterval(() => {
+      prog += Math.random() * 8 + 3;
+      if (prog >= 100) {
+        prog = 100;
+        clearInterval(interval);
+      }
+      setProgress(prog);
+    }, 80);
 
-    // Completely remove after 550ms
-    const hideTimer = setTimeout(() => {
-      setIsVisible(false);
-      sessionStorage.setItem("jobify_splash_shown", "true");
-    }, 550);
+    // Phase 3: start fade out after 2.2s
+    const fadeTimer = setTimeout(() => setPhase("fadeout"), 2200);
+
+    // Phase 4: fully hidden after fade (300ms transition)
+    const doneTimer = setTimeout(() => {
+      onCompleteRef.current();
+    }, 2600);
 
     return () => {
+      clearTimeout(enterTimer);
+      clearInterval(interval);
       clearTimeout(fadeTimer);
-      clearTimeout(hideTimer);
+      clearTimeout(doneTimer);
     };
   }, []);
-
-  if (!isVisible) return null;
 
   return (
     <div
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 99999,
-        background: "linear-gradient(135deg, #090d16 0%, #0f172a 50%, #1e1b4b 100%)",
+        zIndex: 999999,
+        background: "linear-gradient(135deg, #05080f 0%, #0f172a 45%, #1a1040 100%)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        opacity: isFadingOut ? 0 : 1,
-        transition: "opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-        pointerEvents: isFadingOut ? "none" : "all",
+        opacity: phase === "fadeout" ? 0 : phase === "enter" ? 0 : 1,
+        transform: phase === "fadeout" ? "scale(1.03)" : "scale(1)",
+        transition: "opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+        pointerEvents: "all",
       }}
     >
-      {/* Glow ambient circle */}
+      {/* Background grid */}
       <div
         style={{
           position: "absolute",
-          width: "450px",
-          height: "450px",
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(79, 70, 229, 0) 70%)",
-          filter: "blur(40px)",
+          inset: 0,
+          backgroundImage: `
+            linear-gradient(rgba(99, 102, 241, 0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(99, 102, 241, 0.04) 1px, transparent 1px)
+          `,
+          backgroundSize: "48px 48px",
+          opacity: 0.6,
         }}
       />
 
-      {/* Brand Icon & Logo */}
+      {/* Glow orbs */}
       <div
-        className="splash-logo-glow"
         style={{
+          position: "absolute",
+          width: "600px",
+          height: "600px",
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, transparent 70%)",
+          filter: "blur(60px)",
+          animation: "splashPulse 3s ease-in-out infinite",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          width: "300px",
+          height: "300px",
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(56, 189, 248, 0.12) 0%, transparent 70%)",
+          filter: "blur(40px)",
+          transform: "translate(120px, -80px)",
+        }}
+      />
+
+      {/* Main content */}
+      <div
+        style={{
+          position: "relative",
+          zIndex: 1,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "16px",
-          position: "relative",
-          zIndex: 1,
+          gap: "24px",
+          transform: phase === "enter" ? "translateY(20px)" : "translateY(0)",
+          transition: "transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
         }}
       >
+        {/* Logo mark */}
         <div
           style={{
-            width: "72px",
-            height: "72px",
-            borderRadius: "22px",
-            background: "linear-gradient(135deg, #6366f1, #4f46e5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "2.4rem",
-            color: "white",
-            boxShadow: "0 0 35px rgba(99, 102, 241, 0.6)",
+            position: "relative",
+            width: "88px",
+            height: "88px",
           }}
         >
-          ⚡
+          {/* Pulsing ring */}
+          <div
+            style={{
+              position: "absolute",
+              inset: "-8px",
+              borderRadius: "28px",
+              border: "2px solid rgba(99, 102, 241, 0.3)",
+              animation: "splashRing 2s ease-in-out infinite",
+            }}
+          />
+          <div
+            style={{
+              width: "88px",
+              height: "88px",
+              borderRadius: "24px",
+              background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #4338ca 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 0 50px rgba(99, 102, 241, 0.5), 0 0 100px rgba(99, 102, 241, 0.2)",
+              fontSize: "2.6rem",
+            }}
+          >
+            ⚡
+          </div>
         </div>
 
+        {/* Brand name */}
         <div style={{ textAlign: "center" }}>
           <h1
             style={{
-              fontFamily: "var(--font-display, 'Outfit', sans-serif)",
-              fontSize: "2.4rem",
+              fontFamily: "var(--font-outfit, 'Outfit', sans-serif)",
+              fontSize: "3rem",
               fontWeight: 800,
               color: "#ffffff",
-              letterSpacing: "-0.02em",
+              letterSpacing: "-0.03em",
               margin: 0,
+              lineHeight: 1,
+              background: "linear-gradient(135deg, #ffffff 0%, #c7d2fe 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
             }}
           >
             Jobify
@@ -106,66 +168,108 @@ export default function SplashScreen() {
           <p
             style={{
               fontSize: "0.875rem",
-              color: "#94a3b8",
+              color: "#64748b",
               fontWeight: 500,
-              marginTop: "6px",
-              letterSpacing: "0.04em",
+              marginTop: "8px",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
             }}
           >
-            Connecting Talent with Opportunity
+            Connecting Talent · Opportunity
           </p>
         </div>
-      </div>
 
-      {/* Loading Bar & Spinner */}
-      <div
-        style={{
-          marginTop: "40px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "16px",
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
-        {/* Animated Loading Bar */}
+        {/* Progress bar */}
         <div
           style={{
-            width: "160px",
-            height: "4px",
-            background: "rgba(255, 255, 255, 0.1)",
-            borderRadius: "50px",
+            width: "200px",
+            height: "3px",
+            background: "rgba(255, 255, 255, 0.06)",
+            borderRadius: "100px",
             overflow: "hidden",
-            position: "relative",
+            marginTop: "8px",
           }}
         >
           <div
             style={{
-              width: "60%",
               height: "100%",
-              background: "linear-gradient(90deg, #6366f1, #38bdf8)",
-              borderRadius: "50px",
-              animation: "skeletonShimmer 1.2s ease-in-out infinite",
+              width: `${progress}%`,
+              background: "linear-gradient(90deg, #6366f1, #38bdf8, #6366f1)",
               backgroundSize: "200% 100%",
+              borderRadius: "100px",
+              transition: "width 0.12s ease-out",
+              animation: "splashShimmer 1.5s linear infinite",
             }}
           />
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        {/* Loading text */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}
+        >
           <div
-            className="splash-spinner"
             style={{
-              width: "16px",
-              height: "16px",
+              width: "6px",
+              height: "6px",
               borderRadius: "50%",
-              border: "2px solid rgba(255, 255, 255, 0.15)",
-              borderTopColor: "#6366f1",
+              background: "#6366f1",
+              animation: "splashDot 1.4s ease-in-out infinite",
             }}
           />
-          <span style={{ fontSize: "0.78rem", color: "#64748b", fontWeight: 600 }}>Loading workspace...</span>
+          <div
+            style={{
+              width: "6px",
+              height: "6px",
+              borderRadius: "50%",
+              background: "#6366f1",
+              animation: "splashDot 1.4s ease-in-out 0.2s infinite",
+            }}
+          />
+          <div
+            style={{
+              width: "6px",
+              height: "6px",
+              borderRadius: "50%",
+              background: "#6366f1",
+              animation: "splashDot 1.4s ease-in-out 0.4s infinite",
+            }}
+          />
+          <span
+            style={{
+              fontSize: "0.75rem",
+              color: "#475569",
+              fontWeight: 600,
+              letterSpacing: "0.05em",
+              marginLeft: "4px",
+            }}
+          >
+            Preparing your workspace...
+          </span>
         </div>
       </div>
+
+      <style>{`
+        @keyframes splashPulse {
+          0%, 100% { transform: scale(1); opacity: 0.8; }
+          50% { transform: scale(1.1); opacity: 1; }
+        }
+        @keyframes splashRing {
+          0%, 100% { transform: scale(1); opacity: 0.4; }
+          50% { transform: scale(1.15); opacity: 0.8; }
+        }
+        @keyframes splashDot {
+          0%, 80%, 100% { transform: scale(0.5); opacity: 0.3; }
+          40% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes splashShimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
     </div>
   );
 }
