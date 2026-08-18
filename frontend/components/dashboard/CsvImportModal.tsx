@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { jobsApi } from "@/lib/api";
+import { toast } from "react-toastify";
 
 interface CsvImportResult {
   imported: number;
@@ -35,6 +36,7 @@ export default function CsvImportModal({ onClose, onSuccess }: CsvImportModalPro
       setDetectedHeaders(null);
     } else {
       setError("Please drop a valid .csv file");
+      toast.error("Please drop a valid .csv file");
     }
   }, []);
 
@@ -67,12 +69,16 @@ export default function CsvImportModal({ onClose, onSuccess }: CsvImportModalPro
         errors: res.errors,
         message: res.message || "",
       });
+      toast.success(res.message || `Successfully imported ${res.imported || 0} jobs!`);
       onSuccess();
     } else {
-      setError(res.message || "Import failed. Please check your CSV format.");
+      const errMsg = res.message || "Import failed. Please check your CSV format.";
+      setError(errMsg);
+      toast.error(errMsg);
       if (res.detectedHeaders) setDetectedHeaders(res.detectedHeaders);
     }
   };
+
 
   const downloadTemplate = () => {
     const headers = [

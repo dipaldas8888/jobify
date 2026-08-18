@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { authApi } from "@/lib/api";
 import { useAppDispatch } from "@/lib/redux/store";
 import { setCredentials } from "@/lib/redux/slices/authSlice";
+import { toast } from "react-toastify";
 
 function LoginForm() {
   const router = useRouter();
@@ -69,6 +70,7 @@ function LoginForm() {
           if (res.twoFactorRequired) {
             setRequires2FA(true);
             setErrorMessage("");
+            toast.info("2FA code sent to your email.");
           } else if (res.token && res.user) {
             dispatch(
               setCredentials({
@@ -83,21 +85,26 @@ function LoginForm() {
                 },
               })
             );
-
+            toast.success(`Welcome back, ${res.user.name || "User"}!`);
             redirectByRole(res.user.role);
           }
         } else {
           if (res.message?.includes("verify your email")) {
             setUnverifiedEmail(email.trim());
           }
-          setErrorMessage(res.message || "Invalid email or password.");
+          const msg = res.message || "Invalid email or password.";
+          setErrorMessage(msg);
+          toast.error(msg);
         }
       }
     } catch (err: any) {
-      setErrorMessage(err.message || "Login failed.");
+      const msg = err.message || "Login failed.";
+      setErrorMessage(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
+
   };
 
   const redirectByRole = (role: string) => {

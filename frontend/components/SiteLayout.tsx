@@ -5,6 +5,8 @@ import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import ReduxProvider from "@/lib/redux/ReduxProvider";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Footer = dynamic(() => import("@/components/Footer"), {
   ssr: false,
@@ -43,6 +45,20 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <ReduxProvider>
+      {/* Toast notifications container */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3500}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
+
       {/* Show splash screen ONLY ONCE per browser session on 1st visit */}
       {mounted && !splashDone && (
         <SplashScreen onComplete={handleSplashComplete} />
