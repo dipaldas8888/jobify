@@ -79,7 +79,6 @@ export default function CsvImportModal({ onClose, onSuccess }: CsvImportModalPro
     }
   };
 
-
   const downloadTemplate = () => {
     const headers = [
       "title",
@@ -127,7 +126,7 @@ export default function CsvImportModal({ onClose, onSuccess }: CsvImportModalPro
         style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(0,0,0,0.6)",
+          background: "rgba(15, 23, 42, 0.45)",
           backdropFilter: "blur(6px)",
           zIndex: 9000,
         }}
@@ -141,36 +140,37 @@ export default function CsvImportModal({ onClose, onSuccess }: CsvImportModalPro
           left: "50%",
           transform: "translate(-50%, -50%)",
           zIndex: 9001,
-          width: "min(600px, 95vw)",
-          background: "linear-gradient(145deg, #0f172a 0%, #1e293b 100%)",
-          border: "1px solid rgba(99,102,241,0.25)",
-          borderRadius: "20px",
-          boxShadow: "0 25px 60px rgba(0,0,0,0.5)",
+          width: "min(620px, 95vw)",
+          background: "#ffffff",
+          border: "1px solid var(--border)",
+          borderRadius: "22px",
+          boxShadow: "0 25px 60px rgba(0, 0, 0, 0.18)",
           padding: "32px",
-          color: "#e2e8f0",
+          color: "var(--text-primary)",
         }}
       >
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: "1.4rem", fontWeight: 700, color: "#f8fafc" }}>
+            <h2 style={{ margin: 0, fontSize: "1.4rem", fontWeight: 800, color: "var(--text-primary)", fontFamily: "var(--font-display, 'Outfit', sans-serif)" }}>
               📂 Bulk Import Jobs
             </h2>
-            <p style={{ margin: "6px 0 0", fontSize: "0.85rem", color: "#94a3b8" }}>
-              Upload a CSV file to post multiple jobs at once
+            <p style={{ margin: "6px 0 0", fontSize: "0.875rem", color: "var(--text-secondary)" }}>
+              Upload a CSV file to post multiple job positions at once
             </p>
           </div>
           <button
             onClick={onClose}
             style={{
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "8px",
-              color: "#94a3b8",
+              background: "#f1f5f9",
+              border: "1px solid #e2e8f0",
+              borderRadius: "10px",
+              color: "#64748b",
               fontSize: "1.1rem",
               cursor: "pointer",
-              padding: "6px 10px",
+              padding: "6px 12px",
               lineHeight: 1,
+              transition: "all 0.2s ease",
             }}
           >
             ✕
@@ -180,36 +180,37 @@ export default function CsvImportModal({ onClose, onSuccess }: CsvImportModalPro
         {/* CSV Format Guide */}
         <div
           style={{
-            background: "rgba(99,102,241,0.08)",
-            border: "1px solid rgba(99,102,241,0.2)",
-            borderRadius: "12px",
-            padding: "14px 16px",
+            background: "rgba(79,70,229,0.04)",
+            border: "1px solid rgba(79,70,229,0.18)",
+            borderRadius: "14px",
+            padding: "16px 18px",
             marginBottom: "20px",
           }}
         >
-          <div style={{ fontSize: "0.8rem", color: "#a5b4fc", fontWeight: 600, marginBottom: "8px" }}>
-            📋 Required CSV Columns
+          <div style={{ fontSize: "0.825rem", color: "#4f46e5", fontWeight: 700, marginBottom: "10px" }}>
+            📋 Required & Supported CSV Columns
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
             {["title ✓", "location ✓", "description ✓", "company", "salary", "experience", "jobType", "workMode", "skillsRequired", "openings", "education", "deadline"].map((col) => (
               <span
                 key={col}
                 style={{
-                  background: col.includes("✓") ? "rgba(99,102,241,0.2)" : "rgba(255,255,255,0.05)",
-                  border: `1px solid ${col.includes("✓") ? "rgba(99,102,241,0.4)" : "rgba(255,255,255,0.1)"}`,
+                  background: col.includes("✓") ? "rgba(79,70,229,0.12)" : "#ffffff",
+                  border: `1px solid ${col.includes("✓") ? "rgba(79,70,229,0.3)" : "#e2e8f0"}`,
                   borderRadius: "6px",
-                  padding: "3px 8px",
-                  fontSize: "0.72rem",
-                  color: col.includes("✓") ? "#a5b4fc" : "#94a3b8",
+                  padding: "4px 10px",
+                  fontSize: "0.75rem",
+                  color: col.includes("✓") ? "#4f46e5" : "#475569",
                   fontFamily: "monospace",
+                  fontWeight: col.includes("✓") ? 700 : 500,
                 }}
               >
                 {col}
               </span>
             ))}
           </div>
-          <p style={{ margin: "10px 0 0", fontSize: "0.75rem", color: "#64748b" }}>
-            ✓ = required. Skills should be comma-separated within the cell. Salary should be a number (annual).
+          <p style={{ margin: "10px 0 0", fontSize: "0.775rem", color: "#64748b" }}>
+            ✓ = mandatory fields. Skills should be comma-separated. Salary should be a number (annual).
           </p>
         </div>
 
@@ -220,23 +221,24 @@ export default function CsvImportModal({ onClose, onSuccess }: CsvImportModalPro
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            background: "transparent",
-            border: "1px dashed rgba(99,102,241,0.4)",
-            borderRadius: "10px",
-            color: "#a5b4fc",
-            fontSize: "0.83rem",
-            fontWeight: 600,
+            background: "#ffffff",
+            border: "1px dashed rgba(79,70,229,0.4)",
+            borderRadius: "12px",
+            color: "#4f46e5",
+            fontSize: "0.85rem",
+            fontWeight: 700,
             cursor: "pointer",
-            padding: "10px 16px",
+            padding: "12px 18px",
             width: "100%",
             justifyContent: "center",
             marginBottom: "20px",
-            transition: "all 0.2s",
+            transition: "all 0.2s ease",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(99,102,241,0.1)")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(79,70,229,0.04)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "#ffffff")}
         >
-          ⬇ Download CSV Template
+          ⬇ Download Sample CSV Template
         </button>
 
         {/* Drop Zone */}
@@ -247,16 +249,16 @@ export default function CsvImportModal({ onClose, onSuccess }: CsvImportModalPro
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
             style={{
-              border: `2px dashed ${isDragging ? "#6366f1" : file ? "#22c55e" : "rgba(255,255,255,0.12)"}`,
-              borderRadius: "14px",
+              border: `2px dashed ${isDragging ? "#4f46e5" : file ? "#16a34a" : "#cbd5e1"}`,
+              borderRadius: "16px",
               padding: "36px 24px",
               textAlign: "center",
               cursor: "pointer",
               background: isDragging
-                ? "rgba(99,102,241,0.08)"
+                ? "rgba(79,70,229,0.06)"
                 : file
-                ? "rgba(34,197,94,0.04)"
-                : "rgba(255,255,255,0.02)",
+                ? "rgba(22,163,74,0.04)"
+                : "#f8fafc",
               transition: "all 0.2s ease",
               marginBottom: "20px",
             }}
@@ -273,20 +275,20 @@ export default function CsvImportModal({ onClose, onSuccess }: CsvImportModalPro
             </div>
             {file ? (
               <>
-                <p style={{ margin: 0, fontWeight: 600, color: "#4ade80", fontSize: "0.95rem" }}>
+                <p style={{ margin: 0, fontWeight: 700, color: "#16a34a", fontSize: "0.975rem" }}>
                   {file.name}
                 </p>
-                <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "#64748b" }}>
-                  {(file.size / 1024).toFixed(1)} KB — click to change
+                <p style={{ margin: "4px 0 0", fontSize: "0.825rem", color: "#64748b" }}>
+                  {(file.size / 1024).toFixed(1)} KB — click to change file
                 </p>
               </>
             ) : (
               <>
-                <p style={{ margin: 0, fontWeight: 600, color: "#94a3b8", fontSize: "0.95rem" }}>
+                <p style={{ margin: 0, fontWeight: 700, color: "#1e293b", fontSize: "0.95rem" }}>
                   Drag & drop your CSV file here
                 </p>
-                <p style={{ margin: "6px 0 0", fontSize: "0.8rem", color: "#475569" }}>
-                  or click to browse • Max 5MB
+                <p style={{ margin: "6px 0 0", fontSize: "0.825rem", color: "#64748b" }}>
+                  or click to browse from device • Max 5MB
                 </p>
               </>
             )}
@@ -297,13 +299,14 @@ export default function CsvImportModal({ onClose, onSuccess }: CsvImportModalPro
         {error && (
           <div
             style={{
-              background: "rgba(220,38,38,0.08)",
-              border: "1px solid rgba(220,38,38,0.25)",
-              borderRadius: "10px",
+              background: "#fef2f2",
+              border: "1px solid #fca5a5",
+              borderRadius: "12px",
               padding: "12px 16px",
               marginBottom: "16px",
-              color: "#fca5a5",
+              color: "#991b1b",
               fontSize: "0.85rem",
+              fontWeight: 600,
             }}
           >
             ⚠️ {error}
@@ -314,14 +317,14 @@ export default function CsvImportModal({ onClose, onSuccess }: CsvImportModalPro
         {detectedHeaders && detectedHeaders.length > 0 && (
           <div
             style={{
-              background: "rgba(251,191,36,0.06)",
-              border: "1px solid rgba(251,191,36,0.2)",
-              borderRadius: "10px",
-              padding: "12px 16px",
+              background: "#fffbeb",
+              border: "1px solid #fde68a",
+              borderRadius: "12px",
+              padding: "14px 16px",
               marginBottom: "16px",
             }}
           >
-            <p style={{ margin: "0 0 8px", fontSize: "0.78rem", color: "#fbbf24", fontWeight: 600 }}>
+            <p style={{ margin: "0 0 8px", fontSize: "0.8rem", color: "#b45309", fontWeight: 700 }}>
               📋 Your CSV has these columns — rename them to match required names:
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
@@ -329,12 +332,12 @@ export default function CsvImportModal({ onClose, onSuccess }: CsvImportModalPro
                 <span
                   key={h}
                   style={{
-                    background: "rgba(251,191,36,0.12)",
-                    border: "1px solid rgba(251,191,36,0.25)",
+                    background: "rgba(245,158,11,0.12)",
+                    border: "1px solid rgba(245,158,11,0.3)",
                     borderRadius: "6px",
                     padding: "3px 8px",
-                    fontSize: "0.72rem",
-                    color: "#fbbf24",
+                    fontSize: "0.75rem",
+                    color: "#b45309",
                     fontFamily: "monospace",
                   }}
                 >
@@ -342,41 +345,40 @@ export default function CsvImportModal({ onClose, onSuccess }: CsvImportModalPro
                 </span>
               ))}
             </div>
-            <p style={{ margin: "8px 0 0", fontSize: "0.74rem", color: "#64748b" }}>
-              Required: <code style={{ color: "#a5b4fc" }}>title</code>, <code style={{ color: "#a5b4fc" }}>location</code>, <code style={{ color: "#a5b4fc" }}>description</code>. Download the template to see all column names.
+            <p style={{ margin: "8px 0 0", fontSize: "0.775rem", color: "#64748b" }}>
+              Required: <code style={{ color: "#4f46e5" }}>title</code>, <code style={{ color: "#4f46e5" }}>location</code>, <code style={{ color: "#4f46e5" }}>description</code>. Download template for details.
             </p>
           </div>
         )}
-
 
         {/* Success Result */}
         {result && (
           <div style={{ marginBottom: "20px" }}>
             <div
               style={{
-                background: "rgba(34,197,94,0.08)",
-                border: "1px solid rgba(34,197,94,0.25)",
-                borderRadius: "12px",
-                padding: "16px",
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                borderRadius: "14px",
+                padding: "18px",
                 marginBottom: "12px",
               }}
             >
-              <p style={{ margin: 0, fontWeight: 700, color: "#4ade80", fontSize: "1rem" }}>
+              <p style={{ margin: 0, fontWeight: 800, color: "#166534", fontSize: "1.05rem" }}>
                 ✅ Import Complete!
               </p>
-              <div style={{ display: "flex", gap: "24px", marginTop: "10px" }}>
+              <div style={{ display: "flex", gap: "24px", marginTop: "12px" }}>
                 <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: "1.8rem", fontWeight: 800, color: "#4ade80" }}>{result.imported}</div>
-                  <div style={{ fontSize: "0.75rem", color: "#94a3b8" }}>Imported</div>
+                  <div style={{ fontSize: "1.8rem", fontWeight: 800, color: "#16a34a" }}>{result.imported}</div>
+                  <div style={{ fontSize: "0.775rem", color: "#64748b", fontWeight: 600 }}>Imported</div>
                 </div>
                 {result.skipped > 0 && (
                   <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "1.8rem", fontWeight: 800, color: "#fbbf24" }}>{result.skipped}</div>
-                    <div style={{ fontSize: "0.75rem", color: "#94a3b8" }}>Skipped</div>
+                    <div style={{ fontSize: "1.8rem", fontWeight: 800, color: "#d97706" }}>{result.skipped}</div>
+                    <div style={{ fontSize: "0.775rem", color: "#64748b", fontWeight: 600 }}>Skipped</div>
                   </div>
                 )}
               </div>
-              <p style={{ margin: "10px 0 0", fontSize: "0.8rem", color: "#64748b" }}>
+              <p style={{ margin: "12px 0 0", fontSize: "0.85rem", color: "#334155" }}>
                 {result.message}
               </p>
             </div>
@@ -384,19 +386,19 @@ export default function CsvImportModal({ onClose, onSuccess }: CsvImportModalPro
             {result.errors && result.errors.length > 0 && (
               <div
                 style={{
-                  background: "rgba(251,191,36,0.06)",
-                  border: "1px solid rgba(251,191,36,0.2)",
-                  borderRadius: "10px",
+                  background: "#fffbeb",
+                  border: "1px solid #fde68a",
+                  borderRadius: "12px",
                   padding: "12px 14px",
                   maxHeight: "120px",
                   overflowY: "auto",
                 }}
               >
-                <p style={{ margin: "0 0 8px", fontSize: "0.78rem", color: "#fbbf24", fontWeight: 600 }}>
-                  Skipped Rows:
+                <p style={{ margin: "0 0 8px", fontSize: "0.8rem", color: "#b45309", fontWeight: 700 }}>
+                  Skipped Rows Details:
                 </p>
                 {result.errors.map((e, i) => (
-                  <p key={i} style={{ margin: "0 0 4px", fontSize: "0.74rem", color: "#94a3b8" }}>
+                  <p key={i} style={{ margin: "0 0 4px", fontSize: "0.775rem", color: "#64748b" }}>
                     • {e}
                   </p>
                 ))}
@@ -413,13 +415,14 @@ export default function CsvImportModal({ onClose, onSuccess }: CsvImportModalPro
               style={{
                 flex: 1,
                 padding: "12px",
-                background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+                background: "linear-gradient(135deg, #4f46e5, #6366f1)",
                 border: "none",
-                borderRadius: "10px",
+                borderRadius: "12px",
                 color: "#fff",
                 fontWeight: 700,
-                fontSize: "0.9rem",
+                fontSize: "0.925rem",
                 cursor: "pointer",
+                boxShadow: "0 4px 14px rgba(79,70,229,0.3)",
               }}
             >
               Done
@@ -431,10 +434,10 @@ export default function CsvImportModal({ onClose, onSuccess }: CsvImportModalPro
                 style={{
                   flex: 1,
                   padding: "12px",
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  borderRadius: "10px",
-                  color: "#94a3b8",
+                  background: "#f1f5f9",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "12px",
+                  color: "#475569",
                   fontWeight: 600,
                   fontSize: "0.9rem",
                   cursor: "pointer",
@@ -449,18 +452,19 @@ export default function CsvImportModal({ onClose, onSuccess }: CsvImportModalPro
                   flex: 2,
                   padding: "12px",
                   background: file && !isUploading
-                    ? "linear-gradient(135deg, #6366f1, #4f46e5)"
-                    : "rgba(99,102,241,0.25)",
+                    ? "linear-gradient(135deg, #4f46e5, #6366f1)"
+                    : "#e2e8f0",
                   border: "none",
-                  borderRadius: "10px",
-                  color: file && !isUploading ? "#fff" : "#475569",
+                  borderRadius: "12px",
+                  color: file && !isUploading ? "#ffffff" : "#94a3b8",
                   fontWeight: 700,
-                  fontSize: "0.9rem",
+                  fontSize: "0.925rem",
                   cursor: file && !isUploading ? "pointer" : "not-allowed",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: "8px",
+                  boxShadow: file && !isUploading ? "0 4px 14px rgba(79,70,229,0.3)" : "none",
                 }}
               >
                 {isUploading ? (

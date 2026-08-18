@@ -214,38 +214,42 @@ export default function RecruiterOverviewPage() {
             Manage job postings, track candidates, and streamline your hiring process.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setShowPostModal(true);
-            setModalMsg(null);
-          }}
-          className="btn-primary"
-          style={{ padding: "10px 22px", fontSize: "0.875rem" }}
-        >
-          + Post New Job
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            onClick={() => {
+              setShowPostModal(true);
+              setModalMsg(null);
+            }}
+            className="btn-primary"
+            style={{ padding: "10px 22px", fontSize: "0.875rem", display: "inline-flex", alignItems: "center", gap: "6px" }}
+          >
+            + Post New Job
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setShowCsvModal(true)}
-          style={{
-            padding: "10px 18px",
-            fontSize: "0.875rem",
-            fontWeight: 700,
-            borderRadius: "12px",
-            background: "rgba(99,102,241,0.1)",
-            border: "1px solid rgba(99,102,241,0.35)",
-            color: "#6366f1",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-          }}
-        >
-          📂 Import CSV
-        </button>
+          <button
+            type="button"
+            onClick={() => setShowCsvModal(true)}
+            style={{
+              padding: "10px 18px",
+              fontSize: "0.875rem",
+              fontWeight: 700,
+              borderRadius: "12px",
+              background: "rgba(99,102,241,0.08)",
+              border: "1px solid rgba(99,102,241,0.25)",
+              color: "#4f46e5",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              transition: "all 0.2s ease",
+            }}
+          >
+            📂 Import CSV
+          </button>
+        </div>
       </div>
+
 
       {/* CSV Import Modal */}
       {showCsvModal && (
