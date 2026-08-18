@@ -2,31 +2,32 @@ import mongoose from "mongoose";
 
 const jobSchema = new mongoose.Schema(
   {
-    title: { type: String, required: true },
-    company: { type: String, required: true },
-    location: { type: String, required: true },
-    salary: { type: Number },
-    experience: { type: String }, // e.g. "2+ years" or "0-1 years"
+    title:       { type: String, required: true },
+    company:     { type: String, default: "" },
+    location:    { type: String, required: true },
+    salary:      { type: Number },
+    experience:  { type: String, default: "" },
     skillsRequired: [{ type: String }],
     jobType: {
       type: String,
-      enum: ["Full Time", "Part Time", "Contract", "Internship", "Fresher", "Full-time", "Part-time"],
+      // Accepts any string; controller normalises to canonical values
       default: "Full Time",
     },
-    workMode: { 
-      type: String, 
-      enum: ["Remote", "Hybrid", "Onsite"],
-      default: "Onsite"
+    workMode: {
+      type: String,
+      // "On-site" kept for backward compat; controller maps to one of these
+      default: "On-site",
     },
     description: { type: String, required: true },
-    deadline: { type: Date }, // Expiry date
+    deadline:    { type: Date },
     status: {
       type: String,
       enum: ["Draft", "Pending", "Published", "Closed", "Rejected"],
       default: "Pending",
     },
-    education: { type: String }, // e.g. "Bachelor's Degree", "Master's"
-    openings: { type: Number, default: 1 },
+    education: { type: String, default: "" },
+    openings:  { type: Number, default: 1 },
+    whatYouWillDo: { type: String, default: "" },
     recruiter: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

@@ -235,6 +235,8 @@ export default function JobsPage() {
   const [selectedExp, setSelectedExp] = useState<ExperienceLevel | "">("");
   const [sortBy, setSortBy] = useState<"recent" | "salary" | "applicants">("recent");
   const [filterOpen, setFilterOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const JOBS_PER_PAGE = 10;
 
   const [backendJobs, setBackendJobs] = useState<Job[]>([]);
   const [isLoadingBackend, setIsLoadingBackend] = useState(true);
@@ -332,6 +334,41 @@ export default function JobsPage() {
     setSelectedTypes([]);
     setSelectedExp("");
     setSortBy("recent");
+    setCurrentPage(1);
+  };
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, locationQuery, selectedTypes, selectedExp, sortBy]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredJobs.length / JOBS_PER_PAGE));
+  const paginatedJobs = useMemo(
+    () => filteredJobs.slice((currentPage - 1) * JOBS_PER_PAGE, currentPage * JOBS_PER_PAGE),
+    [filteredJobs, currentPage, JOBS_PER_PAGE]
+  );
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Build page number array with ellipsis
+  const getPageNumbers = () => {
+    const pages: (number | "...")[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("...");
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
   };
 
   const clearAllFilters = clearFilters;
@@ -770,11 +807,18 @@ export default function JobsPage() {
               }}
             >
               <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>
-                Showing{" "}
-                <strong style={{ color: "var(--text-primary)" }}>
-                  {filteredJobs.length}
-                </strong>{" "}
-                results
+                {filteredJobs.length === 0 ? (
+                  "No results"
+                ) : (
+                  <>
+                    Showing{" "}
+                    <strong style={{ color: "var(--text-primary)" }}>
+                      {(currentPage - 1) * JOBS_PER_PAGE + 1}–{Math.min(currentPage * JOBS_PER_PAGE, filteredJobs.length)}
+                    </strong>
+                    {" "}of{" "}
+                    <strong style={{ color: "var(--text-primary)" }}>{filteredJobs.length}</strong>{" "}results
+                  </>
+                )}
                 {hasActiveFilters && (
                   <span style={{ color: "#4f46e5", fontWeight: 600 }}> (filtered)</span>
                 )}
@@ -884,14 +928,133 @@ export default function JobsPage() {
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                {filteredJobs.map((job) => (
+                {paginatedJobs.map((job) => (
                   <div key={job.id}>
                     <JobCard job={job} onApply={handleApplyClick} />
                   </div>
                 ))}
               </div>
             )}
-          </div>
+
+            {/* ── Pagination ── */}
+            {!isLoadingBackend && filteredJobs.length > JOBS_PER_PAGE && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  marginTop: "32px",
+                  flexWrap: "wrap",
+                }}
+              >
+                {/* Prev button */}
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => goToPage(currentPage - 1)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "8px 16px",
+                    borderRadius: "10px",
+                    border: "1px solid var(--border)",
+                    background: currentPage === 1 ? "#f8fafc" : "#ffffff",
+                    color: currentPage === 1 ? "var(--text-muted)" : "var(--text-primary)",
+                    fontWeight: 600,
+                    fontSize: "0.85rem",
+                    cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                    fontFamily: "inherit",
+                    opacity: currentPage === 1 ? 0.5 : 1,
+                    transition: "all 0.15s ease",
+                    boxShadow: currentPage === 1 ? "none" : "0 1px 3px rgba(0,0,0,0.06)",
+                  }}
+                >
+                  ← Prev
+                </button>
+
+                {/* Page numbers */}
+                {getPageNumbers().map((p, i) =>
+                  p === "..." ? (
+                    <span
+                      key={`ellipsis-${i}`}
+                      style={{ padding: "8px 4px", color: "var(--text-muted)", fontSize: "0.9rem" }}
+                    >
+                      …
+                    </span>
+                  ) : (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => goToPage(p as number)}
+                      style={{
+                        minWidth: "40px",
+                        height: "40px",
+                        borderRadius: "10px",
+                        border: currentPage === p ? "none" : "1px solid var(--border)",
+                        background:
+                          currentPage === p
+                            ? "linear-gradient(135deg, #4f46e5, #6366f1)"
+                            : "#ffffff",
+                        color: currentPage === p ? "#ffffff" : "var(--text-primary)",
+                        fontWeight: currentPage === p ? 700 : 500,
+                        fontSize: "0.875rem",
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        boxShadow:
+                          currentPage === p
+                            ? "0 4px 14px rgba(79,70,229,0.35)"
+                            : "0 1px 3px rgba(0,0,0,0.06)",
+                        transform: currentPage === p ? "scale(1.05)" : "scale(1)",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+
+                {/* Next button */}
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages}
+                  onClick={() => goToPage(currentPage + 1)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "8px 16px",
+                    borderRadius: "10px",
+                    border: "1px solid var(--border)",
+                    background: currentPage === totalPages ? "#f8fafc" : "#ffffff",
+                    color: currentPage === totalPages ? "var(--text-muted)" : "var(--text-primary)",
+                    fontWeight: 600,
+                    fontSize: "0.85rem",
+                    cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                    fontFamily: "inherit",
+                    opacity: currentPage === totalPages ? 0.5 : 1,
+                    transition: "all 0.15s ease",
+                    boxShadow: currentPage === totalPages ? "none" : "0 1px 3px rgba(0,0,0,0.06)",
+                  }}
+                >
+                  Next →
+                </button>
+
+                {/* Page info text */}
+                <span
+                  style={{
+                    marginLeft: "8px",
+                    fontSize: "0.8rem",
+                    color: "var(--text-muted)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Page {currentPage} of {totalPages}
+                </span>
+              </div>
+            )}
+          </div>{/* end jobs column */}
         </div>{/* end jobs-layout */}
       </div>
 

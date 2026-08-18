@@ -369,42 +369,107 @@ const normalizeHeader = (h) =>
   h.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 /**
- * Alias map: canonical field → all header variants that should map to it.
- * Keys are canonical names used inside the controller.
- * Values are arrays of normalized strings to match against.
+ * Alias map: canonical field → exact normalized header variants.
+ * ALL matches are exact (norm === alias) — no startsWith to avoid false positives.
+ * Add any new header variant you encounter as a new alias entry.
  */
 const FIELD_ALIASES = {
-  title:          ["title", "jobtitle", "job", "positiontitle", "position", "role", "jobrole"],
-  company:        ["company", "companyname", "employer", "organization", "firm", "recruitingcompany"],
-  location:       ["location", "joblocation", "city", "place", "worklocation", "region"],
-  description:    ["description", "jobdescription", "jobdetails", "details", "overview", "about", "summary"],
-  salary:         ["salary", "annualsalary", "pay", "compensation", "ctc", "package", "annualsalary", "salarylpa", "salaryrange"],
-  experience:     ["experience", "experiencelevel", "exp", "seniority", "level", "joblevel", "yearsofexperience"],
-  jobType:        ["jobtype", "type", "employmenttype", "contracttype", "worktype"],
-  workMode:       ["workmode", "mode", "remoteoronsite", "remote", "workarrangement"],
-  skillsRequired: ["skillsrequired", "skills", "requiredskills", "techstack", "technologies", "keyskills", "requiredskilscommasepar", "requiredskilscommasepara"],
-  education:      ["education", "qualification", "degree", "educationrequired"],
-  openings:       ["openings", "vacancies", "seats", "noofpositions", "positions", "headcount"],
-  deadline:       ["deadline", "applicationdeadline", "closingdate", "lastdate", "applyby"],
-  status:         ["status", "jobstatus"],
+  title: [
+    "title", "jobtitle", "positiontitle", "position", "role", "jobrole",
+    "jobposition", "joblisting", "jobopeningtitle", "vacancy",
+  ],
+  company: [
+    "company", "companyname", "employer", "organization", "organisation",
+    "firm", "recruitingcompany", "hiringcompany", "businessname",
+  ],
+  location: [
+    "location", "joblocation", "city", "place", "worklocation", "region",
+    "officelocation", "workcity", "jobcity", "area",
+  ],
+  description: [
+    "description", "jobdescription", "jobdetails", "details", "overview",
+    "about", "summary", "jobsummary", "aboutthejob", "roledescription",
+    "joboverview", "positiondescription",
+  ],
+  salary: [
+    "salary", "annualsalary", "pay", "compensation", "ctc", "package",
+    "salarylpa", "salaryrange", "annualsalary", "expectedsalary",
+    "annualsalary", "salaryinr", "ctcpa",
+    // handles "Annual Salary ($)" → "annualsalary"
+    "annualsalary",
+  ],
+  experience: [
+    "experience", "experiencelevel", "exp", "seniority", "level",
+    "joblevel", "yearsofexperience", "requiredexperience", "experiencerequired",
+    "experienceyears", "senioritylevel",
+  ],
+  jobType: [
+    "jobtype", "type", "employmenttype", "contracttype", "worktype",
+    "jobtypefullparttime", "employmentmode",
+  ],
+  workMode: [
+    "workmode", "mode", "workarrangement", "remoteoronsite",
+    "workstyle", "workformat", "officeremote",
+  ],
+  skillsRequired: [
+    "skillsrequired", "skills", "requiredskills", "techstack", "technologies",
+    "keyskills",
+    "requiredskillscommaseparated",   // "Required Skills (comma separated)"
+    "requiredskilscommaseparated",    // typo variant with one l
+    "requiredskilscommasepar",
+    "requiredskilscommasepara",
+    "requiredskillscommasepara",
+    "skillscommaseparated",
+    "requiredskillscommasep",
+  ],
+
+  education: [
+    "education", "qualification", "degree", "educationrequired",
+    "minimumeducation", "educationlevel",
+  ],
+  openings: [
+    "openings", "vacancies", "seats", "noofpositions", "positions",
+    "headcount", "numberofpositions", "numberofvacancies",
+  ],
+  deadline: [
+    "deadline", "applicationdeadline", "closingdate", "lastdate",
+    "applyby", "applicationclosedate", "lastdatetoapply",
+  ],
+  status: ["status", "jobstatus", "publishstatus"],
 };
 
 /**
- * Build a lookup: normalizedHeader → canonicalField
+ * Build a lookup: rawHeader → canonicalField
+ * Uses EXACT match on the normalized header only.
  */
 const buildHeaderMap = (rawHeaders) => {
   const map = {};
   rawHeaders.forEach((raw) => {
     const norm = normalizeHeader(raw);
     for (const [field, aliases] of Object.entries(FIELD_ALIASES)) {
-      if (aliases.some((a) => norm === a || norm.startsWith(a) || a.startsWith(norm))) {
+      // Exact match only — prevents "jobdescription" matching "job" alias for title
+      if (aliases.includes(norm)) {
         map[raw] = field;
         break;
+      }
+    }
+    // Fallback: if still unmatched, try prefix match only when alias is LONGER than 5 chars
+    // This handles typos/truncated headers safely
+    if (!map[raw]) {
+      for (const [field, aliases] of Object.entries(FIELD_ALIASES)) {
+        const matched = aliases.find(
+          (a) => a.length > 5 && (norm.startsWith(a) || a.startsWith(norm))
+        );
+        if (matched) {
+          map[raw] = field;
+          break;
+        }
       }
     }
   });
   return map;
 };
+
 
 /**
  * Normalize a row using the header map so all fields use canonical names.
@@ -453,41 +518,51 @@ export const bulkCreateJobs = async (req, res) => {
       return res.status(400).json({ success: false, message: "CSV file is empty or has no valid rows" });
     }
 
-    // Build header → canonical field map from the first record's keys
+    // Build header → canonical field map
     const rawHeaders = Object.keys(records[0]);
     const headerMap = buildHeaderMap(rawHeaders);
 
-    // Normalize all records
+    // Normalize all records using the header map
     const normalizedRecords = records.map((r) => normalizeRow(r, headerMap));
 
     const REQUIRED_FIELDS = ["title", "location", "description"];
     const errors = [];
-    const jobDocs = [];
+    const imported = [];
 
-    normalizedRecords.forEach((row, idx) => {
-      const rowNum = idx + 2;
+    // ── Insert each row individually so one bad row never blocks others ──
+    for (let idx = 0; idx < normalizedRecords.length; idx++) {
+      const row = normalizedRecords[idx];
+      const rowNum = idx + 2; // account for 1-indexing + header row
 
+      // Only skip rows missing the 3 truly required fields
       const missing = REQUIRED_FIELDS.filter((f) => !row[f] || !String(row[f]).trim());
       if (missing.length > 0) {
-        errors.push(`Row ${rowNum}: missing required field(s): ${missing.join(", ")}`);
-        return;
+        errors.push(`Row ${rowNum} skipped — missing required field(s): ${missing.join(", ")}`);
+        continue;
       }
 
-      // Parse skills — comma-separated string → array
-      const skillsRaw = row.skillsRequired || "";
-      const skillsArray = String(skillsRaw)
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
+      // ── Optional field parsing — always produce a safe value, never throw ──
 
-      // Parse salary — strip currency symbols and commas
-      const salaryRaw = row.salary || "";
-      const salaryNum = parseFloat(String(salaryRaw).replace(/[^0-9.]/g, ""));
+      // Skills: comma-separated string → array; any garbage becomes []
+      let skillsArray = [];
+      try {
+        skillsArray = String(row.skillsRequired || "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+      } catch (_) { /* stay empty */ }
 
-      // Normalize experience level
+      // Salary: strip currency chars; NaN → undefined (field omitted)
+      let salary;
+      try {
+        const n = parseFloat(String(row.salary || "").replace(/[^0-9.]/g, ""));
+        if (!isNaN(n) && n > 0) salary = n;
+      } catch (_) { /* stay undefined */ }
+
+      // Experience: fuzzy map common strings; anything unrecognised stored as-is
       const expRaw = String(row.experience || "").toLowerCase();
-      let experience = "Mid Level";
-      if (expRaw.includes("entry") || expRaw.includes("junior") || expRaw.includes("fresher") || expRaw === "0") {
+      let experience = "";
+      if (expRaw.includes("entry") || expRaw.includes("junior") || expRaw.includes("fresher")) {
         experience = "Entry Level";
       } else if (expRaw.includes("senior") || expRaw.includes("lead") || expRaw.includes("principal")) {
         experience = "Senior Level";
@@ -495,66 +570,86 @@ export const bulkCreateJobs = async (req, res) => {
         experience = "Internship";
       } else if (expRaw.includes("mid") || expRaw.includes("intermediate")) {
         experience = "Mid Level";
-      } else if (row.experience) {
-        experience = row.experience; // pass through if user typed something custom
+      } else {
+        experience = row.experience ? String(row.experience).trim() : "";
       }
 
-      // Normalize job type
+      // Job type: normalise; unknown values stored as-is
       const typeRaw = String(row.jobType || "").toLowerCase();
       let jobType = "Full Time";
       if (typeRaw.includes("part")) jobType = "Part Time";
       else if (typeRaw.includes("contract") || typeRaw.includes("freelance")) jobType = "Contract";
       else if (typeRaw.includes("intern")) jobType = "Internship";
-      else if (row.jobType) jobType = row.jobType;
+      else if (row.jobType) jobType = String(row.jobType).trim();
 
-      // Normalize work mode
+      // Work mode: normalise; unknown values stored as-is
       const modeRaw = String(row.workMode || "").toLowerCase();
       let workMode = "On-site";
       if (modeRaw.includes("remote")) workMode = "Remote";
       else if (modeRaw.includes("hybrid")) workMode = "Hybrid";
-      else if (row.workMode) workMode = row.workMode;
+      else if (row.workMode) workMode = String(row.workMode).trim();
 
-      jobDocs.push({
-        title: String(row.title).trim(),
-        company: String(row.company || "").trim(),
-        location: String(row.location).trim(),
-        description: String(row.description).trim(),
-        salary: isNaN(salaryNum) ? undefined : salaryNum,
-        experience,
-        jobType,
-        workMode,
+      // Openings: must be a positive integer; default 1
+      let openings = 1;
+      try {
+        const n = parseInt(row.openings);
+        if (!isNaN(n) && n > 0) openings = n;
+      } catch (_) { /* default 1 */ }
+
+      // Deadline: parse date; invalid date → omitted
+      let deadline;
+      try {
+        if (row.deadline) {
+          const d = new Date(row.deadline);
+          if (!isNaN(d.getTime())) deadline = d;
+        }
+      } catch (_) { /* omit */ }
+
+      // Build the job document — all optional fields have safe fallbacks
+      const jobDoc = {
+        title:         String(row.title).trim(),
+        company:       String(row.company || "").trim(),
+        location:      String(row.location).trim(),
+        description:   String(row.description).trim(),
+        experience:    experience,
+        jobType:       jobType,
+        workMode:      workMode,
         skillsRequired: skillsArray,
-        education: String(row.education || "").trim(),
-        openings: parseInt(row.openings) || 1,
-        deadline: row.deadline ? new Date(row.deadline) : undefined,
-        status: req.user.role === "admin" ? (row.status || "Published") : "Pending",
-        recruiter: req.user._id,
-      });
-    });
+        education:     String(row.education || "").trim(),
+        openings:      openings,
+        status:        req.user.role === "admin"
+                         ? (row.status || "Published")
+                         : "Pending",
+        recruiter:     req.user._id,
+        ...(salary !== undefined && { salary }),
+        ...(deadline  !== undefined && { deadline }),
+      };
 
-    if (jobDocs.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "No valid jobs found in CSV. Check that your columns include at least: title/job title, location, description/job description",
-        errors,
-        detectedHeaders: rawHeaders,
-        headerMapping: headerMap,
-      });
+      // Insert individually so validation errors on one row don't abort others
+      try {
+        const saved = await Job.create(jobDoc);
+        imported.push(saved);
+      } catch (insertErr) {
+        // Mongoose validation error — record it but carry on
+        const msg = insertErr?.message || String(insertErr);
+        errors.push(`Row ${rowNum} ("${jobDoc.title}"): ${msg}`);
+      }
     }
 
-    // Batch insert
-    const inserted = await Job.insertMany(jobDocs, { ordered: false });
-
-    res.status(201).json({
-      success: true,
-      message: `Successfully imported ${inserted.length} job(s).${
-        errors.length > 0 ? ` ${errors.length} row(s) were skipped.` : ""
-      }`,
-      imported: inserted.length,
-      skipped: errors.length,
-      errors: errors.length > 0 ? errors : undefined,
-      data: inserted,
+    // ── Respond even if some rows failed ──
+    const statusCode = imported.length > 0 ? 201 : 400;
+    return res.status(statusCode).json({
+      success: imported.length > 0,
+      message: imported.length > 0
+        ? `Successfully imported ${imported.length} job(s).${errors.length > 0 ? ` ${errors.length} row(s) had issues.` : ""}`
+        : "No jobs were imported. All rows had errors.",
+      imported: imported.length,
+      skipped:  errors.length,
+      errors:   errors.length > 0 ? errors : undefined,
+      detectedHeaders: rawHeaders,
+      headerMapping:   headerMap,
     });
+
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
