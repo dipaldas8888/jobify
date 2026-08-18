@@ -23,6 +23,7 @@ export default function ApplyJobPage({ params }: { params: Promise<{ id: string 
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [coverLetter, setCoverLetter] = useState<string>("");
 
+  const [alreadyApplied, setAlreadyApplied] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -30,12 +31,31 @@ export default function ApplyJobPage({ params }: { params: Promise<{ id: string 
     if (user) {
       if (user.name) setFullName(user.name);
       if (user.email) setEmail(user.email);
+      checkAlreadyApplied();
     }
-  }, [user]);
+  }, [user, id]);
+
+  const checkAlreadyApplied = async () => {
+    try {
+      const res = await jobsApi.getMyApplications();
+      if (res.success && Array.isArray(res.data)) {
+        const found = res.data.some((app: any) => {
+          const appId = typeof app.job === "object" ? (app.job._id || app.job.id) : app.job;
+          return String(appId) === String(id);
+        });
+        if (found) {
+          setAlreadyApplied(true);
+        }
+      }
+    } catch (err) {
+      console.log("Error checking applied status on apply page:", err);
+    }
+  };
 
   useEffect(() => {
     fetchJobInfo();
   }, [id]);
+
 
   const fetchJobInfo = async () => {
     setIsLoadingJob(true);
@@ -221,7 +241,37 @@ export default function ApplyJobPage({ params }: { params: Promise<{ id: string 
             Complete the fields below to apply directly to the employer.
           </p>
 
+          {alreadyApplied && (
+            <div
+              style={{
+                padding: "16px 20px",
+                borderRadius: "14px",
+                background: "rgba(34, 197, 94, 0.12)",
+                border: "1px solid rgba(34, 197, 94, 0.3)",
+                color: "#15803d",
+                fontSize: "0.925rem",
+                fontWeight: 700,
+                marginBottom: "24px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "12px",
+              }}
+            >
+              <span>✓ You have already submitted an application for this position.</span>
+              <Link
+                href={`/jobs/${id}`}
+                className="btn-secondary"
+                style={{ padding: "8px 16px", borderRadius: "10px", fontSize: "0.825rem", textDecoration: "none" }}
+              >
+                View Details →
+              </Link>
+            </div>
+          )}
+
           {!user && (
+
             <div
               style={{
                 padding: "14px 18px",
@@ -354,17 +404,18 @@ export default function ApplyJobPage({ params }: { params: Promise<{ id: string 
               <button
                 type="submit"
                 className="btn-primary"
-                disabled={isSubmitting || !user}
+                disabled={isSubmitting || !user || alreadyApplied}
                 style={{
                   padding: "12px 32px",
                   borderRadius: "12px",
                   fontSize: "0.95rem",
                   fontWeight: 700,
-                  opacity: isSubmitting || !user ? 0.6 : 1,
+                  opacity: isSubmitting || !user || alreadyApplied ? 0.6 : 1,
                 }}
               >
-                {isSubmitting ? "Submitting..." : "Submit Application →"}
+                {alreadyApplied ? "✓ Already Applied" : isSubmitting ? "Submitting..." : "Submit Application →"}
               </button>
+
             </div>
           </form>
         </div>

@@ -42,4 +42,7 @@ export const jobsApi = {
       method: "POST",
       body: formData,
     }),
+
+  getMyApplications: () => apiRequest("/jobs/applications/my"),
 };
+

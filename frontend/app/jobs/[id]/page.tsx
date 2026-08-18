@@ -142,6 +142,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState<boolean>(false);
+  const [hasApplied, setHasApplied] = useState<boolean>(false);
 
   useEffect(() => {
     fetchJobDetail();
@@ -150,10 +151,27 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   useEffect(() => {
     if (user) {
       checkIfSaved();
+      checkIfApplied();
     }
   }, [user, id]);
 
+  const checkIfApplied = async () => {
+    try {
+      const res = await jobsApi.getMyApplications();
+      if (res.success && Array.isArray(res.data)) {
+        const found = res.data.some((app: any) => {
+          const appId = typeof app.job === "object" ? (app.job._id || app.job.id) : app.job;
+          return String(appId) === String(id);
+        });
+        setHasApplied(found);
+      }
+    } catch (err) {
+      console.log("Error checking applied status:", err);
+    }
+  };
+
   const checkIfSaved = async () => {
+
     try {
       const res = await authApi.getProfile();
       if (res.success && res.data && Array.isArray(res.data.savedJobs)) {
@@ -412,21 +430,43 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   {isSaved ? "♥ Saved" : "♡ Save"}
                 </button>
 
-                <Link
-                  href={`/jobs/${job.id}/apply`}
-                  className="btn-primary"
-                  style={{
-                    padding: "13px 32px",
-                    borderRadius: "14px",
-                    fontSize: "0.95rem",
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    boxShadow: "0 6px 18px rgba(79,70,229,0.3)",
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  Apply For Job →
-                </Link>
+                {hasApplied ? (
+                  <button
+                    type="button"
+                    disabled
+                    style={{
+                      padding: "13px 28px",
+                      borderRadius: "14px",
+                      fontSize: "0.95rem",
+                      fontWeight: 700,
+                      background: "rgba(34, 197, 94, 0.12)",
+                      color: "#15803d",
+                      border: "1px solid rgba(34, 197, 94, 0.3)",
+                      cursor: "default",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    ✓ Applied
+                  </button>
+                ) : (
+                  <Link
+                    href={`/jobs/${job.id}/apply`}
+                    className="btn-primary"
+                    style={{
+                      padding: "13px 32px",
+                      borderRadius: "14px",
+                      fontSize: "0.95rem",
+                      fontWeight: 700,
+                      textDecoration: "none",
+                      boxShadow: "0 6px 18px rgba(79,70,229,0.3)",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    Apply For Job →
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -673,24 +713,47 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               </div>
 
               <div style={{ marginTop: "24px", paddingTop: "20px", borderTop: "1px solid var(--border)" }}>
-                <Link
-                  href={`/jobs/${job.id}/apply`}
-                  className="btn-primary"
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    textAlign: "center",
-                    padding: "13px",
-                    borderRadius: "12px",
-                    fontSize: "0.925rem",
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    boxShadow: "0 4px 14px rgba(79,70,229,0.3)",
-                  }}
-                >
-                  Apply For Job Now →
-                </Link>
+                {hasApplied ? (
+                  <button
+                    type="button"
+                    disabled
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      textAlign: "center",
+                      padding: "13px",
+                      borderRadius: "12px",
+                      fontSize: "0.925rem",
+                      fontWeight: 700,
+                      background: "rgba(34, 197, 94, 0.12)",
+                      color: "#15803d",
+                      border: "1px solid rgba(34, 197, 94, 0.3)",
+                      cursor: "default",
+                    }}
+                  >
+                    ✓ Applied
+                  </button>
+                ) : (
+                  <Link
+                    href={`/jobs/${job.id}/apply`}
+                    className="btn-primary"
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      textAlign: "center",
+                      padding: "13px",
+                      borderRadius: "12px",
+                      fontSize: "0.925rem",
+                      fontWeight: 700,
+                      textDecoration: "none",
+                      boxShadow: "0 4px 14px rgba(79,70,229,0.3)",
+                    }}
+                  >
+                    Apply For Job Now →
+                  </Link>
+                )}
               </div>
+
             </div>
 
             {/* Employer Spotlight */}

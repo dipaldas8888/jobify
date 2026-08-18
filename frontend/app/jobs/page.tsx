@@ -19,7 +19,7 @@ const EXPERIENCE_LEVELS: ExperienceLevel[] = [
   "Director",
 ];
 
-function JobCard({ job, onApply }: { job: Job; onApply?: (job: Job) => void }) {
+function JobCard({ job, hasApplied, onApply }: { job: Job; hasApplied?: boolean; onApply?: (job: Job) => void }) {
   const router = useRouter();
 
   return (
@@ -156,17 +156,37 @@ function JobCard({ job, onApply }: { job: Job; onApply?: (job: Job) => void }) {
                 {job.salary}
               </span>
 
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  router.push(`/jobs/${job.id}/apply`);
-                }}
-                className="btn-primary"
-                style={{ padding: "6px 14px", fontSize: "0.8rem", borderRadius: "8px" }}
-              >
-                Apply Now
-              </button>
+              {hasApplied ? (
+                <button
+                  type="button"
+                  disabled
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    padding: "6px 14px",
+                    fontSize: "0.8rem",
+                    borderRadius: "8px",
+                    background: "rgba(34, 197, 94, 0.12)",
+                    color: "#15803d",
+                    border: "1px solid rgba(34, 197, 94, 0.3)",
+                    cursor: "default",
+                    fontWeight: 700,
+                  }}
+                >
+                  ✓ Applied
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/jobs/${job.id}/apply`);
+                  }}
+                  className="btn-primary"
+                  style={{ padding: "6px 14px", fontSize: "0.8rem", borderRadius: "8px" }}
+                >
+                  Apply Now
+                </button>
+              )}
 
             </div>
           </div>
@@ -175,6 +195,7 @@ function JobCard({ job, onApply }: { job: Job; onApply?: (job: Job) => void }) {
     </div>
   );
 }
+
 
 function JobCardSkeleton() {
   return (
@@ -240,6 +261,7 @@ export default function JobsPage() {
 
   const [backendJobs, setBackendJobs] = useState<Job[]>([]);
   const [isLoadingBackend, setIsLoadingBackend] = useState(true);
+  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
 
   // Apply Modal state
   const [applyingJob, setApplyingJob] = useState<Job | null>(null);
@@ -251,7 +273,30 @@ export default function JobsPage() {
     fetchBackendJobs();
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      fetchMyApplications();
+    }
+  }, [user]);
+
+  const fetchMyApplications = async () => {
+    try {
+      const res = await jobsApi.getMyApplications();
+      if (res.success && Array.isArray(res.data)) {
+        const ids = new Set<string>();
+        res.data.forEach((app: any) => {
+          const appId = typeof app.job === "object" ? (app.job._id || app.job.id) : app.job;
+          if (appId) ids.add(String(appId));
+        });
+        setAppliedJobIds(ids);
+      }
+    } catch (err) {
+      console.error("Failed to load user applications:", err);
+    }
+  };
+
   const fetchBackendJobs = async () => {
+
     setIsLoadingBackend(true);
     try {
       const res = await jobsApi.getJobs();
@@ -930,10 +975,11 @@ export default function JobsPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                 {paginatedJobs.map((job) => (
                   <div key={job.id}>
-                    <JobCard job={job} onApply={handleApplyClick} />
+                    <JobCard job={job} hasApplied={appliedJobIds.has(String(job.id))} onApply={handleApplyClick} />
                   </div>
                 ))}
               </div>
+
             )}
 
             {/* ── Pagination ── */}
