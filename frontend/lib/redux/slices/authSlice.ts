@@ -74,9 +74,15 @@ export const authSlice = createSlice({
       state.isAuthenticated = false;
       state.isLoading = false;
       if (typeof window !== "undefined") {
-        localStorage.removeItem("jobify_token");
-        localStorage.removeItem("token");
-        localStorage.removeItem("jobify_user");
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+          document.cookie.split(";").forEach((c) => {
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+          });
+        } catch (e) {
+          console.error("Storage clear error on logout:", e);
+        }
       }
     },
     setLoading: (state, action: PayloadAction<boolean>) => {

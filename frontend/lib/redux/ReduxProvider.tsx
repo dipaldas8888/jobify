@@ -42,7 +42,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
     if (token) {
       syncProfile(token);
     } else {
-      dispatch(setLoading(false));
+      dispatch(logout());
     }
 
     // Real-time cross-tab auth state synchronization

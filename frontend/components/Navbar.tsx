@@ -57,7 +57,18 @@ export default function Navbar() {
   const handleLogout = () => {
     dispatch(logout());
     setProfileDropdownOpen(false);
-    router.push("/");
+    setAuthDropdownOpen(false);
+    setMobileOpen(false);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+        document.cookie.split(";").forEach((c) => {
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        });
+      } catch (e) {}
+      window.location.href = "/";
+    }
   };
 
   const firstLetter = user?.name ? user.name.charAt(0).toUpperCase() : "U";

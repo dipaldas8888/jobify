@@ -33,7 +33,16 @@ export default function RecruiterSidebar() {
 
   const handleLogout = () => {
     dispatch(logout());
-    router.push("/");
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+        document.cookie.split(";").forEach((c) => {
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        });
+      } catch (e) {}
+      window.location.href = "/";
+    }
   };
 
   const initials = user?.name
