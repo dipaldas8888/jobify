@@ -41,21 +41,23 @@ function DashboardHeader() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    dispatch(logout());
+  const handleLogout = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (typeof window !== "undefined") {
       try {
-        localStorage.removeItem("jobify_token");
-        localStorage.removeItem("token");
-        localStorage.removeItem("jobify_user");
-        sessionStorage.removeItem("jobify_token");
-        sessionStorage.removeItem("token");
-        sessionStorage.removeItem("jobify_user");
+        localStorage.clear();
+        sessionStorage.clear();
         sessionStorage.setItem("jobify_splash_shown", "true");
         document.cookie.split(";").forEach((c) => {
           document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
         });
-      } catch (e) {}
+      } catch (err) {}
+    }
+    dispatch(logout());
+    if (typeof window !== "undefined") {
       window.location.href = "/";
     }
   };
