@@ -45,8 +45,13 @@ function DashboardHeader() {
     dispatch(logout());
     if (typeof window !== "undefined") {
       try {
-        localStorage.clear();
-        sessionStorage.clear();
+        localStorage.removeItem("jobify_token");
+        localStorage.removeItem("token");
+        localStorage.removeItem("jobify_user");
+        sessionStorage.removeItem("jobify_token");
+        sessionStorage.removeItem("token");
+        sessionStorage.removeItem("jobify_user");
+        sessionStorage.setItem("jobify_splash_shown", "true");
         document.cookie.split(";").forEach((c) => {
           document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
         });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
@@ -18,20 +18,40 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const isDashboard = pathname.startsWith("/dashboard");
 
-  // Show splash only on first load, not on dashboard routes
-  const [splashDone, setSplashDone] = useState(isDashboard);
+  // Default to true (hidden) on SSR and dashboard routes
+  const [splashDone, setSplashDone] = useState<boolean>(true);
+  const [mounted, setMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window !== "undefined") {
+      const alreadyShown = sessionStorage.getItem("jobify_splash_shown");
+      if (alreadyShown === "true" || isDashboard) {
+        setSplashDone(true);
+      } else {
+        setSplashDone(false);
+      }
+    }
+  }, [isDashboard]);
+
+  const handleSplashComplete = () => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("jobify_splash_shown", "true");
+    }
+    setSplashDone(true);
+  };
 
   return (
     <ReduxProvider>
-      {/* Splash screen renders first; content waits until it's done */}
-      {!splashDone && (
-        <SplashScreen onComplete={() => setSplashDone(true)} />
+      {/* Show splash screen ONLY ONCE per browser session on 1st visit */}
+      {mounted && !splashDone && (
+        <SplashScreen onComplete={handleSplashComplete} />
       )}
 
-      {/* Main app content — hidden via opacity until splash finishes */}
+      {/* Main app content */}
       <div
         style={{
-          opacity: splashDone ? 1 : 0,
+          opacity: mounted && !splashDone ? 0 : 1,
           transition: "opacity 0.4s ease-in",
           minHeight: "100vh",
           display: "flex",
