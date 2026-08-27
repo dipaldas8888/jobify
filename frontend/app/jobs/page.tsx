@@ -3,10 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useMemo, useEffect } from "react";
+import TextType from "@/components/TextType";
+import JobDetailPanel from "@/components/JobDetailPanel";
 import { mockJobs, type Job, type JobType, type ExperienceLevel } from "@/data/mockJobs";
 import { jobsApi, authApi, apiRequest } from "@/lib/api";
 import { useAppSelector } from "@/lib/redux/store";
 import { toast } from "react-toastify";
+
+
 
 const JOB_TYPES: JobType[] = ["Full-time", "Part-time", "Contract", "Remote", "Internship"];
 const EXPERIENCE_LEVELS: ExperienceLevel[] = [
@@ -146,6 +150,15 @@ export default function JobsPage() {
   const [dislikedJobIds, setDislikedJobIds] = useState<Set<string>>(new Set());
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [showMobileDetailModal, setShowMobileDetailModal] = useState<boolean>(false);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState<boolean>(false);
+
+  const activeFilterCount =
+    selectedTypes.length +
+    (selectedExp ? 1 : 0) +
+    (minSalaryFilter ? 1 : 0) +
+    (searchQuery ? 1 : 0) +
+    (locationQuery ? 1 : 0);
+
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -264,15 +277,22 @@ export default function JobsPage() {
         if (!matchesLocation) return false;
       }
 
-      // Job type filter
+      // Job type filter (normalized)
       if (selectedTypes.length > 0) {
-        if (!selectedTypes.includes(job.type)) return false;
+        const normJobType = job.type.toLowerCase().replace(/[^a-z]/g, "");
+        const matchesType = selectedTypes.some(
+          (t) => t.toLowerCase().replace(/[^a-z]/g, "") === normJobType
+        );
+        if (!matchesType) return false;
       }
 
-      // Experience level filter
+      // Experience level filter (normalized)
       if (selectedExp) {
-        if (job.experience !== selectedExp) return false;
+        const normExp = job.experience.toLowerCase().replace(/[^a-z]/g, "");
+        const normSelected = selectedExp.toLowerCase().replace(/[^a-z]/g, "");
+        if (!normExp.includes(normSelected) && !normSelected.includes(normExp)) return false;
       }
+
 
       // Salary filter
       if (minSalaryFilter && typeof minSalaryFilter === "number") {
@@ -369,10 +389,28 @@ export default function JobsPage() {
     router.push(`/jobs/${job.id}/apply`);
   };
 
+  const toggleJobType = (t: JobType) => {
+    setCurrentPage(1);
+    if (selectedTypes.includes(t)) {
+      setSelectedTypes(selectedTypes.filter((item) => item !== t));
+    } else {
+      setSelectedTypes([...selectedTypes, t]);
+    }
+  };
+
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setLocationQuery("");
+    setSelectedTypes([]);
+    setSelectedExp("");
+    setMinSalaryFilter("");
+    setCurrentPage(1);
+  };
+
   return (
-    <div style={{ background: "#f8fafc", minHeight: "100vh", paddingBottom: "60px" }}>
+    <div style={{ background: "#f8fafc", height: "100dvh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
       {/* ========================================================
-          1. TOP INDEED-STYLE UNIFIED SEARCH HEADER
+          1. TOP INDEED-STYLE UNIFIED SEARCH & FILTER HEADER
          ======================================================== */}
       <div
         style={{
@@ -382,6 +420,30 @@ export default function JobsPage() {
         }}
       >
         <div className="container-main" style={{ maxWidth: "1200px" }}>
+          {/* Animated Headline with TextType */}
+          <div style={{ textAlign: "center", marginBottom: "20px" }}>
+            <h1
+              style={{
+                fontSize: "clamp(1.5rem, 3.5vw, 2.2rem)",
+                fontWeight: 800,
+                color: "#0f172a",
+                letterSpacing: "-0.02em",
+                margin: "0 0 8px",
+                fontFamily: "var(--font-display, 'Outfit', sans-serif)",
+              }}
+            >
+              Find your next{" "}
+              <TextType
+                text={["Software Engineer", "Frontend Developer", "Product Manager", "Data Analyst", "DevOps Engineer"]}
+                className="gradient-text"
+              />{" "}
+              job
+            </h1>
+            <p style={{ color: "#64748b", fontSize: "0.95rem", margin: 0 }}>
+              Discover top opportunities matched to your skills and preferences
+            </p>
+          </div>
+
           {/* Main Rounded Search Bar */}
           <div
             style={{
@@ -470,53 +532,218 @@ export default function JobsPage() {
               Find jobs
             </button>
           </div>
+
+          {/* Desktop Interactive Filter Pills & Dropdowns Row */}
+          <div
+            className="desktop-filter-row"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              marginTop: "16px",
+              flexWrap: "wrap",
+            }}
+          >
+            {/* Job Types Pills */}
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+              {JOB_TYPES.map((t) => {
+                const isActive = selectedTypes.includes(t);
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => toggleJobType(t)}
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: "50px",
+                      fontSize: "0.825rem",
+                      fontWeight: isActive ? 700 : 500,
+                      color: isActive ? "#2563eb" : "#475569",
+                      background: isActive ? "rgba(37, 99, 235, 0.1)" : "#ffffff",
+                      border: isActive ? "1px solid rgba(37, 99, 235, 0.3)" : "1px solid #cbd5e1",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      boxShadow: isActive ? "0 2px 6px rgba(37, 99, 235, 0.15)" : "0 1px 2px rgba(0,0,0,0.02)",
+                    }}
+                  >
+                    {isActive ? "✓ " : ""}{t}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Experience Level Dropdown */}
+            <select
+              value={selectedExp}
+              onChange={(e) => {
+                setSelectedExp(e.target.value as ExperienceLevel | "");
+                setCurrentPage(1);
+              }}
+              style={{
+                padding: "6px 14px",
+                borderRadius: "50px",
+                fontSize: "0.825rem",
+                fontWeight: selectedExp ? 700 : 500,
+                color: selectedExp ? "#2563eb" : "#475569",
+                background: selectedExp ? "rgba(37, 99, 235, 0.1)" : "#ffffff",
+                border: selectedExp ? "1px solid rgba(37, 99, 235, 0.3)" : "1px solid #cbd5e1",
+                cursor: "pointer",
+                outline: "none",
+                fontFamily: "inherit",
+              }}
+            >
+              <option value="">Experience: All</option>
+              {EXPERIENCE_LEVELS.map((exp) => (
+                <option key={exp} value={exp}>{exp}</option>
+              ))}
+            </select>
+
+            {/* Minimum Salary Dropdown */}
+            <select
+              value={minSalaryFilter}
+              onChange={(e) => {
+                setMinSalaryFilter(e.target.value ? Number(e.target.value) : "");
+                setCurrentPage(1);
+              }}
+              style={{
+                padding: "6px 14px",
+                borderRadius: "50px",
+                fontSize: "0.825rem",
+                fontWeight: minSalaryFilter ? 700 : 500,
+                color: minSalaryFilter ? "#2563eb" : "#475569",
+                background: minSalaryFilter ? "rgba(37, 99, 235, 0.1)" : "#ffffff",
+                border: minSalaryFilter ? "1px solid rgba(37, 99, 235, 0.3)" : "1px solid #cbd5e1",
+                cursor: "pointer",
+                outline: "none",
+                fontFamily: "inherit",
+              }}
+            >
+              <option value="">Salary: All Ranges</option>
+              <option value="50000">$50,000+ / yr</option>
+              <option value="80000">$80,000+ / yr</option>
+              <option value="100000">$100,000+ / yr</option>
+              <option value="120000">$120,000+ / yr</option>
+            </select>
+
+            {/* Clear All Filters Button */}
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "50px",
+                  fontSize: "0.825rem",
+                  fontWeight: 700,
+                  color: "#dc2626",
+                  background: "#fef2f2",
+                  border: "1px solid #fca5a5",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                ✕ Clear All
+              </button>
+            )}
+          </div>
+
+          {/* Small Screen Filter Trigger Button */}
+          <div className="mobile-filter-trigger-bar" style={{ display: "none", marginTop: "14px" }}>
+            <button
+              type="button"
+              onClick={() => setMobileFilterOpen(true)}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                padding: "11px 18px",
+                borderRadius: "14px",
+                background: "#ffffff",
+                border: activeFilterCount > 0 ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
+                color: activeFilterCount > 0 ? "#2563eb" : "#1e293b",
+                fontWeight: 700,
+                fontSize: "0.925rem",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
+                cursor: "pointer",
+              }}
+            >
+              <span>🎛️</span> All Filters
+              {activeFilterCount > 0 && (
+                <span
+                  style={{
+                    background: "#2563eb",
+                    color: "#ffffff",
+                    borderRadius: "50px",
+                    padding: "2px 8px",
+                    fontSize: "0.75rem",
+                    fontWeight: 800,
+                    marginLeft: "4px",
+                  }}
+                >
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
+
+
       {/* ========================================================
-          2. MAIN CONTENT AREA: SPLIT SCREEN (DESKTOP) & STACKED (MOBILE)
+          2. MAIN CONTENT AREA: SPLIT SCREEN — flex fills remaining viewport
          ======================================================== */}
-      <div className="container-main" style={{ maxWidth: "1280px", marginTop: "24px" }}>
-        {/* Welcome & Section Banner */}
-        <div style={{ marginBottom: "20px" }}>
-          <h2 style={{ fontSize: "1.5rem", fontWeight: 800, color: "#0f172a", margin: 0, fontFamily: "var(--font-display, 'Outfit', sans-serif)" }}>
-            Welcome, {user?.name || "Job Seeker"}
-          </h2>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "6px 14px",
-                borderRadius: "10px",
-                background: "#ffffff",
-                border: "1px solid #cbd5e1",
-                fontSize: "0.85rem",
-                fontWeight: 700,
-                color: "#1e293b",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-              }}
-            >
-              📷 ₹4L / yr
-            </span>
-            <span style={{ fontSize: "0.9rem", color: "#64748b", fontWeight: 600 }}>
-              Showing {filteredJobs.length} matches
-            </span>
-          </div>
+      <div
+        className="container-main"
+        style={{
+          maxWidth: "1280px",
+          marginTop: "16px",
+          flex: 1,
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+          paddingBottom: "0",
+        }}
+      >
+        {/* Match count row — compact, no wasted space */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px", flexShrink: 0 }}>
+          <span style={{ fontSize: "0.85rem", color: "#64748b", fontWeight: 600 }}>
+            {filteredJobs.length} jobs for you
+          </span>
         </div>
 
-        <h3 style={{ fontSize: "1.2rem", fontWeight: 800, color: "#0f172a", marginBottom: "16px" }}>
-          Jobs for you
-        </h3>
+        {/* 2-COLUMN SPLIT GRID — fills all remaining height; left scrolls, right stays fixed */}
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: "grid",
+            gridTemplateColumns: "1fr 1.35fr",
+            gap: "20px",
+            overflow: "hidden",
+          }}
+          className="indeed-jobs-split-grid"
+        >
 
-        {/* 2-COLUMN SPLIT GRID */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.35fr", gap: "24px" }} className="indeed-jobs-split-grid">
-          
-          {/* ==========================================
-              LEFT COLUMN: JOB CARDS LIST
-             ========================================== */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+          {/* LEFT COLUMN — independent scroll */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+              overflowY: "auto",
+              overflowX: "hidden",
+              paddingRight: "6px",
+              paddingBottom: "20px",
+              height: "100%",
+              minHeight: 0,
+            }}
+            className="jobs-left-col"
+          >
 
             {isLoadingBackend ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
@@ -569,17 +796,35 @@ export default function JobsPage() {
                     style={{
                       background: "#ffffff",
                       borderRadius: "16px",
-                      padding: "20px",
-                      border: isSelected ? "2px solid #2563eb" : "1px solid #e2e8f0",
+                      padding: "20px 20px 20px 24px",
+                      border: isSelected
+                        ? "1.5px solid rgba(79, 70, 229, 0.4)"
+                        : "1px solid #e2e8f0",
                       boxShadow: isSelected
-                        ? "0 8px 24px rgba(37, 99, 235, 0.12)"
+                        ? "0 0 0 3px rgba(79, 70, 229, 0.08), 0 8px 24px rgba(79, 70, 229, 0.06)"
                         : "0 2px 6px rgba(0, 0, 0, 0.03)",
                       cursor: "pointer",
-                      transition: "all 0.2s ease",
+                      transition: "all 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
                       position: "relative",
+                      overflow: "hidden",
                     }}
                     className="job-item-card"
                   >
+                    {/* Left Active Glow Accent Bar */}
+                    {isSelected && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: "4px",
+                          background: "linear-gradient(180deg, #4f46e5, #6366f1)",
+                          borderRadius: "0 4px 4px 0",
+                        }}
+                      />
+                    )}
+
                     {/* Top row badge + Bookmark & Dislike actions */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
                       <span
@@ -724,185 +969,246 @@ export default function JobsPage() {
             )}
           </div>
 
-          {/* ==========================================
-              RIGHT COLUMN: STICKY JOB DETAIL PANEL (DESKTOP)
-             ========================================== */}
-          <div className="desktop-detail-panel">
-            {selectedJob ? (
-              <div
-                style={{
-                  position: "sticky",
-                  top: "84px",
-                  maxHeight: "calc(100vh - 104px)",
-                  overflowY: "auto",
-                  background: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "20px",
-                  padding: "28px",
-                  boxShadow: "0 10px 30px rgba(0, 0, 0, 0.04)",
-                }}
-              >
-                {/* Detail Header */}
-                <h1 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#0f172a", margin: "0 0 8px", fontFamily: "var(--font-display, 'Outfit', sans-serif)" }}>
-                  {selectedJob.title}
-                </h1>
-
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "0.9rem", color: "#64748b", flexWrap: "wrap", marginBottom: "20px" }}>
-                  <a
-                    href={`/jobs/${selectedJob.id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ fontWeight: 700, color: "#2563eb", textDecoration: "underline" }}
-                  >
-                    {selectedJob.company} ↗
-                  </a>
-                  <span>•</span>
-                  <span>{selectedJob.location}</span>
-                  <span>•</span>
-                  <span>{selectedJob.salary}</span>
-                </div>
-
-                {/* Primary Action Row */}
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", marginBottom: "24px", paddingBottom: "20px", borderBottom: "1px solid #e2e8f0" }}>
-                  {appliedJobIds.has(String(selectedJob.id)) ? (
-                    <button
-                      disabled
-                      style={{
-                        padding: "11px 24px",
-                        borderRadius: "10px",
-                        background: "rgba(34, 197, 94, 0.12)",
-                        color: "#15803d",
-                        border: "1px solid rgba(34, 197, 94, 0.3)",
-                        fontWeight: 700,
-                        fontSize: "0.925rem",
-                      }}
-                    >
-                      ✓ Applied
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleApplyClick(selectedJob)}
-                      className="btn-primary"
-                      style={{
-                        padding: "11px 26px",
-                        borderRadius: "10px",
-                        background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-                        fontSize: "0.925rem",
-                        fontWeight: 700,
-                      }}
-                    >
-                      Apply with Jobify →
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={(e) => handleToggleSave(String(selectedJob.id), e)}
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: "10px",
-                      background: savedJobIds.has(String(selectedJob.id)) ? "rgba(37,99,235,0.1)" : "#f1f5f9",
-                      border: "1px solid #cbd5e1",
-                      fontSize: "1.1rem",
-                      cursor: "pointer",
-                    }}
-                    title="Bookmark job"
-                  >
-                    {savedJobIds.has(String(selectedJob.id)) ? "🔖" : "📑"}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={(e) => handleDislikeJob(String(selectedJob.id), e)}
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: "10px",
-                      background: "#f1f5f9",
-                      border: "1px solid #cbd5e1",
-                      fontSize: "1.1rem",
-                      cursor: "pointer",
-                    }}
-                    title="Hide job"
-                  >
-                    👎
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={(e) => handleShareJob(String(selectedJob.id), e)}
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: "10px",
-                      background: "#f1f5f9",
-                      border: "1px solid #cbd5e1",
-                      fontSize: "1.1rem",
-                      cursor: "pointer",
-                    }}
-                    title="Share job"
-                  >
-                    📤
-                  </button>
-                </div>
-
-                {/* Job Description Content Area */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                  <h4 style={{ fontSize: "1.05rem", fontWeight: 700, color: "#0f172a", margin: 0 }}>
-                    Job description:
-                  </h4>
-
-                  <FormattedDescription text={selectedJob.description} />
-
-                  {selectedJob.tags && selectedJob.tags.length > 0 && (
-                    <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #f1f5f9" }}>
-                      <p style={{ fontSize: "0.85rem", fontWeight: 700, color: "#64748b", marginBottom: "8px" }}>
-                        Required Skills:
-                      </p>
-                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                        {selectedJob.tags.map((t) => (
-                          <span
-                            key={t}
-                            style={{
-                              background: "#f1f5f9",
-                              border: "1px solid #cbd5e1",
-                              color: "#1e293b",
-                              padding: "4px 12px",
-                              borderRadius: "8px",
-                              fontSize: "0.8rem",
-                              fontWeight: 600,
-                            }}
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div style={{ marginTop: "12px", fontSize: "0.85rem", color: "#64748b" }}>
-                    <strong>Work Location:</strong> {selectedJob.location}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div
-                style={{
-                  background: "#ffffff",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "20px",
-                  padding: "40px",
-                  textAlign: "center",
-                  color: "#64748b",
-                }}
-              >
-                Select a job from the list to view full details
-              </div>
-            )}
+          {/* RIGHT COLUMN — fixed height, never blank */}
+          <div
+            className="desktop-detail-panel"
+            style={{ height: "100%", overflow: "hidden" }}
+          >
+            <JobDetailPanel
+              selectedJob={selectedJob}
+              hasApplied={Boolean(selectedJob && appliedJobIds.has(String(selectedJob.id)))}
+              isSaved={Boolean(selectedJob && savedJobIds.has(String(selectedJob.id)))}
+              onApply={handleApplyClick}
+              onToggleSave={handleToggleSave}
+              onDislike={handleDislikeJob}
+              onShare={handleShareJob}
+            />
           </div>
+
+
         </div>
       </div>
 
       {/* ========================================================
-          3. MOBILE / SMALL SCREEN JOB DETAIL OVERLAY MODAL
+          3. MOBILE "ALL FILTERS" SIDE DRAWER POPUP MODAL
+         ======================================================== */}
+      {mobileFilterOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            background: "rgba(15, 23, 42, 0.6)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            justifyContent: "flex-end",
+          }}
+          onClick={() => setMobileFilterOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#ffffff",
+              width: "100%",
+              maxWidth: "400px",
+              height: "100vh",
+              boxShadow: "-10px 0 40px rgba(0,0,0,0.2)",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              padding: "24px",
+              animation: "filterSlideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #f1f5f9", paddingBottom: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ fontSize: "1.2rem" }}>🎛️</span>
+                <h3 style={{ fontSize: "1.25rem", fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                  Filter Jobs
+                </h3>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#dc2626",
+                    fontWeight: 700,
+                    fontSize: "0.85rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  Reset All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMobileFilterOpen(false)}
+                  style={{
+                    background: "#f1f5f9",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: "34px",
+                    height: "34px",
+                    fontSize: "1.1rem",
+                    color: "#64748b",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Content Body */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px 4px 16px 0", display: "flex", flexDirection: "column", gap: "24px" }}>
+              {/* Section 1: Job Types */}
+              <div>
+                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 700, color: "#0f172a", marginBottom: "10px" }}>
+                  Job Type
+                </label>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {JOB_TYPES.map((t) => {
+                    const isActive = selectedTypes.includes(t);
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => toggleJobType(t)}
+                        style={{
+                          padding: "8px 16px",
+                          borderRadius: "10px",
+                          fontSize: "0.85rem",
+                          fontWeight: isActive ? 700 : 500,
+                          color: isActive ? "#2563eb" : "#475569",
+                          background: isActive ? "rgba(37, 99, 235, 0.1)" : "#f8fafc",
+                          border: isActive ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {isActive ? "✓ " : ""}{t}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Section 2: Experience Level */}
+              <div>
+                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 700, color: "#0f172a", marginBottom: "10px" }}>
+                  Experience Level
+                </label>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedExp("")}
+                    style={{
+                      padding: "8px 16px",
+                      borderRadius: "10px",
+                      fontSize: "0.85rem",
+                      fontWeight: !selectedExp ? 700 : 500,
+                      color: !selectedExp ? "#2563eb" : "#475569",
+                      background: !selectedExp ? "rgba(37, 99, 235, 0.1)" : "#f8fafc",
+                      border: !selectedExp ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
+                      cursor: "pointer",
+                    }}
+                  >
+                    All Levels
+                  </button>
+                  {EXPERIENCE_LEVELS.map((exp) => {
+                    const isActive = selectedExp === exp;
+                    return (
+                      <button
+                        key={exp}
+                        type="button"
+                        onClick={() => setSelectedExp(exp)}
+                        style={{
+                          padding: "8px 16px",
+                          borderRadius: "10px",
+                          fontSize: "0.85rem",
+                          fontWeight: isActive ? 700 : 500,
+                          color: isActive ? "#2563eb" : "#475569",
+                          background: isActive ? "rgba(37, 99, 235, 0.1)" : "#f8fafc",
+                          border: isActive ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {isActive ? "✓ " : ""}{exp}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Section 3: Salary Expectation */}
+              <div>
+                <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 700, color: "#0f172a", marginBottom: "10px" }}>
+                  Minimum Salary
+                </label>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {[
+                    { label: "All Ranges", val: "" },
+                    { label: "$50,000+", val: 50000 },
+                    { label: "$80,000+", val: 80000 },
+                    { label: "$100,000+", val: 100000 },
+                    { label: "$120,000+", val: 120000 },
+                  ].map((sal) => {
+                    const isActive = minSalaryFilter === sal.val;
+                    return (
+                      <button
+                        key={sal.label}
+                        type="button"
+                        onClick={() => setMinSalaryFilter(sal.val as any)}
+                        style={{
+                          padding: "8px 16px",
+                          borderRadius: "10px",
+                          fontSize: "0.85rem",
+                          fontWeight: isActive ? 700 : 500,
+                          color: isActive ? "#2563eb" : "#475569",
+                          background: isActive ? "rgba(37, 99, 235, 0.1)" : "#f8fafc",
+                          border: isActive ? "1.5px solid #2563eb" : "1px solid #cbd5e1",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {isActive ? "✓ " : ""}{sal.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Drawer Apply Footer */}
+            <div style={{ paddingTop: "14px", borderTop: "1px solid #f1f5f9" }}>
+              <button
+                type="button"
+                onClick={() => setMobileFilterOpen(false)}
+                className="btn-primary"
+                style={{
+                  width: "100%",
+                  padding: "14px",
+                  borderRadius: "12px",
+                  fontSize: "0.95rem",
+                  fontWeight: 700,
+                  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+                  boxShadow: "0 4px 16px rgba(37, 99, 235, 0.3)",
+                }}
+              >
+                Show Results ({filteredJobs.length} Jobs)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* ========================================================
+          4. MOBILE / SMALL SCREEN JOB DETAIL OVERLAY MODAL
          ======================================================== */}
       {showMobileDetailModal && selectedJob && (
         <div
@@ -1005,18 +1311,68 @@ export default function JobsPage() {
       )}
 
       <style>{`
+        @keyframes filterSlideInRight {
+          from {
+            transform: translateX(100%);
+          }
+          to {
+            transform: translateX(0);
+          }
+        }
         @media (max-width: 960px) {
           .indeed-jobs-split-grid {
             grid-template-columns: 1fr !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+          }
+          .jobs-left-col {
+            height: auto !important;
+            overflow-y: visible !important;
           }
           .desktop-detail-panel {
             display: none !important;
           }
         }
+
+        /* slim scrollbar for left job cards column */
+        .jobs-left-col {
+          scrollbar-width: thin;
+          scrollbar-color: #cbd5e1 transparent;
+        }
+        .jobs-left-col::-webkit-scrollbar {
+          width: 5px;
+        }
+        .jobs-left-col::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .jobs-left-col::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 10px;
+        }
+        .jobs-left-col::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
+
+        /* ── CRITICAL: prevent flex from compressing cards ── */
+        .jobs-left-col > * {
+          flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+          .desktop-filter-row {
+            display: none !important;
+          }
+          .mobile-filter-trigger-bar {
+            display: block !important;
+          }
+        }
         @media (max-width: 640px) {
           .unified-search-box {
-            border-radius: 16px !important;
-            padding: 12px !important;
+            border-radius: 18px !important;
+            padding: 14px 16px !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
           }
           .search-divider {
             display: none !important;
@@ -1025,9 +1381,29 @@ export default function JobsPage() {
             width: 100% !important;
             border-radius: 12px !important;
             padding: 12px !important;
+            margin-top: 4px !important;
           }
+        /* ── RIGHT panel inner body: slim custom scrollbar ── */
+        .indeed-detail-scroll-body {
+          scrollbar-width: thin;
+          scrollbar-color: #e2e8f0 transparent;
+        }
+        .indeed-detail-scroll-body::-webkit-scrollbar {
+          width: 4px;
+        }
+        .indeed-detail-scroll-body::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .indeed-detail-scroll-body::-webkit-scrollbar-thumb {
+          background: #e2e8f0;
+          border-radius: 10px;
+        }
+        .indeed-detail-scroll-body::-webkit-scrollbar-thumb:hover {
+          background: #cbd5e1;
         }
       `}</style>
+
     </div>
   );
 }
+
